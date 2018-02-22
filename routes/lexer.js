@@ -3,7 +3,13 @@ var router = express.Router();
 var lex = require('../lexer.js');
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-    res.send(lex(req.query.lex));
+    var errors = [];
+    var ret = lex(errors,req.query.lex);
+    if (errors.length > 0) {
+        errors.unshift("Input: " + input);
+        res.send(JSON.stringify(errors));
+    }
+    else res.send(ret);
 });
 
 module.exports = router;

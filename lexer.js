@@ -9,7 +9,7 @@ String.prototype.isWs = function() {
     return this.length == 1 && this.match(/[\s\n]/i);
 }
 String.prototype.isOperator = function() {
-    return this.length == 1 && this.match(/[\+|-|\*|\/|=|>|<|>=|<=|&|\||%|!|\^|\(|\)]/i);
+    return this.length == 1 && this.match(/[\"\'\,\+|-|\*|\/|=|>|<|>=|<=|&|\||%|!|\^|\(|\)]/i);
 }
 String.prototype.type = function () {
     if (this.isDigit()) return "DIGIT";
@@ -52,7 +52,7 @@ DIGIT = "DIGIT";
 OPERATOR = "OPERATOR";
 NUMBER = "NUMBER";
 FN_OPERATOR = "FN_OPERATOR";
-function lex(input) {
+function lex(errors,input) {
     console.log("lexing: " + input);
     input += "\n";
     function toString(int) {
@@ -68,13 +68,18 @@ function lex(input) {
         }
     }
     function throwEx(state,expected,encountered) {
-        console.log("In state " + toString(state) + ", expected " + expected + " but encountered " + encountered);
+        var found = encountered;
+        if (encountered instanceof Token || encountered instanceof Object) found = "[ index " + encountered.index + "]: '" + encountered.data + "'";
+        var error = "At (index " + encountered.index + "), In state " + toString(state) + ", expected " + expected + " but encountered " + found;
+        console.log(error);
+        if (!errors.includes(error)) errors.push(error);
     }
     var STATE = new State();
     var state = STATE.START;
     var tokens = [];
     var line = 1;
     var token = new Token(line,0);
+    var SAME_QUOTE = "\"";
     for (i = 0; i < input.length; i++) {
         x = input.charAt(i);
         switch (state) {
@@ -95,7 +100,12 @@ function lex(input) {
                         token.data += x;
                         break;
                     case OPERATOR:
-                        if (x == ";") {
+                        if (x == "\"" || x == "\'") {
+                            token.type = STRING;
+                            state = STATE.STRING;
+                            SAME_QUOTE = x;
+                        }
+                        else if (x == ";") {
                             state = STATE.COMMENT;
                         } else if (x == "=") {
                             state = STATE.FN_OPERATOR;
@@ -219,6 +229,48 @@ function lex(input) {
                         i--; // put back char
                 }
                 break;
+            case STATE.STRING:
+                switch (x.type()) {
+                    case WS:
+                        if (x == "\\") {
+                            state = STATE.LITERAL;
+                        } else {
+                            token.data += x;
+                        }
+                        break;
+                    case OPERATOR:
+                        if (x == SAME_QUOTE) {
+                            state = STATE.START;
+                            tokens.push(token);
+                            token = new Token(line,i);
+                        } else {
+                            token.data += x;
+                        }
+                        break;
+                    case DIGIT:
+                    case LETTER:
+                    default:
+                        token.data += x;
+                }
+                break;
+            case STATE.LITERAL:
+                switch (x) {
+                    case "n":
+                        token.data += "\n";
+                        break;
+                    case "t":
+                        token.data += "\t";
+                        break;
+                    case "\"":
+                        token.data += "\"";
+                        break;
+                    case "\'":
+                        token.data += "\'";
+                        break;
+                    default:
+                        token.data += "\\" + x;
+                }
+                state = STATE.STRING;
             default:
                 throwEx(state,"unknown state",state);
         }

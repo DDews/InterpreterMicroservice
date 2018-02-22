@@ -1,3 +1,4 @@
+var REDUCING = false;
 Array.prototype.remove = function(index) {
     var x = this[index];
     this.splice(index,1);
@@ -11,6 +12,7 @@ function isMult(x) {
 }
 functions = {};
 UNKNOWN = "UNKOWN";
+IDENTIFIER = "ID";
 WORD = "WORD";
 NUMBER = "NUMBER";
 MULTDIV = "MULTDIV";
@@ -28,46 +30,56 @@ FN_OPERATOR = "FN_OPERATOR";
 FN_NAME = "FN_NAME";
 OPERANDS = "OPERANDS";
 OPERAND = "OPERAND";
+STRING = "STRING";
 ASSIGNMENT = "ASSIGNMENT";
 var variables = null;
 var factors = [];
 class Node {
     constructor(token, type, children) {
-        this.data = token.data;
+        if (token != null) this.data = token.data;
+        else this.data = "";
         this.type = type;
-        this.line = token.line;
-        this.index = token.index;
+        if (token != null) this.line = token.line;
+        else this.line = 0;
+        if (token != null) this.index = token.index;
+        else this.index = 0;
         this.children = children;
-        this.ttype = token.type;
+        if (token != null) this.ttype = token.type;
+        else this.ttype = "UNKOWN";
     }
 }
-function throwEx(type, msg, token) {
-    console.log("In state " + type + ", Expected " + msg + " but encountered: " + JSON.stringify(token));
+function throwEx(errors, type, msg, token) {
+    if (REDUCING) return;
+    var encountered = token;
+    if (token instanceof Node || token instanceof Object) encountered = "[index " + token.index + " " + token.type + "] '" + token.data + "'";
+    var error = "In state " + type + ", Expected " + msg + " but encountered: " + encountered;
+    console.log(error);
+    if (!errors.includes(error)) errors.push(error);
 }
-function Expressions(tokens) {
+function Expressions(errors,tokens) {
     var token = tokens.get(0);
     var type =  EXPRESSIONS;
     var children = [];
-    children.push(Expression(tokens));
+    children.push(Expression(errors,tokens));
     if (tokens.length > 0) {
         peek = tokens.get(0);
         if (peek.type == OPERATOR) {
-            children.push(Operator(tokens));
-            children.push(Expressions(tokens));
+            children.push(Operator(errors,tokens));
+            children.push(Expressions(errors,tokens));
             if (tokens.length != 0) {
-                throwEx(type, "NO MORE TOKENS", tokens.get(0));
+                throwEx(errors,type, "NO MORE TOKENS", tokens.get(0));
                 return;
             }
         }
     }
     return new Node(token,type,children);
 }
-function Expression(tokens) {
+function Expression(errors,tokens) {
     var token = tokens.get(0);
     var type =  EXPRESSION;
     console.log(type);
     var children = [];
-    children.push(MultDiv(tokens));
+    children.push(MultDiv(errors,tokens));
     if (tokens.length > 0) {
         var peek = tokens.get(0);
         if (peek.type == OPERATOR) {
@@ -75,111 +87,155 @@ function Expression(tokens) {
                 case "+":
                 case " ":
                 case "-":
-                    children.push(Operator(tokens));
-                    children.push(Expression(tokens));
+                    children.push(Operator(errors,tokens));
+                    children.push(Expression(errors,tokens));
                     break;
                 default:
             }
         } else {
         }
         if (tokens.length > 0 && tokens.get(0).type != OPERATOR) {
-            throwEx(type, "OPERATOR", tokens.get(0));
+            throwEx(errors,type, "OPERATOR", tokens.get(0));
             return;
         }
     }
     return new Node(token,type,children);
 }
-function Term(tokens) {
+function Term(errors,tokens) {
     var token = tokens.remove(0);
     var type =  TERM;
     console.log(type);
     var children = [];
     switch(token.type) {
         case WORD:
-            if (variables != null && !variables.includes(token.data)) {
-                throwEx(type,"DECLARED VARIABLE",token);
-                return;
-            }
-            if (token.data in functions) {
-                type = FN_CALL;
-                peek = tokens.get(0);
-                children.push(Params(token.data,tokens));
+            if (token.data in functions || (variables != null && !variables.includes(token.data))) {
+                if (REDUCING || token.data in functions) {
+                    type = FN_CALL;
+                    var peek = tokens.get(0);
+                    if (tokens.length > 0 && peek.type == OPERATOR && peek.data == "(") {
+                        children.push(Params(token.data, errors, tokens));
+                    }
+                    break;
+                }
+                else {
+                  throwEx(errors, type, "DECLARED VARIABLE", token);
+                  if (!REDUCING) {
+                      throw "not reducing";
+                  }
+                }
             }
             else if (tokens.length > 0 && tokens.get(0).data == "=") {
                 type = ASSIGNMENT;
                 tokens.remove(0); // eat = sign
-                children.push(Expression(tokens));
+                children.push(Expression(errors,tokens));
+            } else {
+                throwEx(errors, type, "DECLARED VARIABLE or FUNCTION",token);
+                if (!REDUCING) throw "not reducing";
             }
+            break;
         case NUMBER:
-            children.push(Number(token));
+            children.push(Number(errors,token));
+            break;
+        case STRING:
+            children.push(String(errors, token));
             break;
         case OPERATOR:
             if (token.data == "(") {
-                children.push(Expression(tokens));
+                children.push(Expression(errors,tokens));
                 close = tokens.remove(0);
                 if (close.data != ")") {
-                    throwEx(type,"ENCLOSED EXPRESSION with CLOSING PARENTHESIS",close);
+                    throwEx(errors,type,"ENCLOSED EXPRESSION with CLOSING PARENTHESIS",close);
                     return;
                 }
             }
             else {
-                throwEx(type,"'('",token);
-                return;
+                throwEx(errors,type,"'('",token);
+                if (!REDUCING) throw "not reducing";
             }
             break;
         default:
-            throwEx(type,"TERM (expected NUMBER or WORD",token);
-            return;
+            throwEx(errors,type,"TERM (expected NUMBER or WORD",token);
+            if (!REDUCING) throw "not reducing";
     }
     return new Node(token,type,children);
 }
-function Number(token) {
+function Number(errors,token) {
     var token = token;
     var children = [];
     var type = NUMBER;
     console.log(type);
     if (token.type != NUMBER) {
-        throwEx(type,"NUMBER",token);
+        throwEx(errors,type,"NUMBER",token);
     }
     return new Node(token,type,children);
 }
-function Params(fn_name, tokens) {
+function String(errors, token) {
+    var token = token;
+    var children = [];
+    var type = STRING;
+    console.log(type);
+    if (token.type != STRING) {
+        throwEx(errors,type,"STRING",token);
+    }
+    return new Node(token,type,children);
+}
+function Params(errors,fn_name, tokens) {
     var token = tokens.get(0);
     var type =  PARAMS;
     console.log(type);
-    next = tokens.get(0);
+    var children = [];
+    var next = tokens.get(0);
     if (fn_name in functions) {
         //ok
     } else {
-        throwEx(type,"DECLARED_FUNCTION",fn_name);
-        return;
+        throwEx(errors,type,"DECLARED_FUNCTION",fn_name);
+        if (!REDUCING) throw "not reducing";
     }
     fn = functions[fn_name];
-    p = fn.children[1].children.length;
-    for (i = 0; i < p; i++) {
-        children.push(Param(tokens));
+    if (tokens.length > 0) {
+        next = tokens.remove(0);
+        if (next.type == "OPERATOR" && next.data == "(") {
+            // ok
+        } else {
+            throwEx(errors, type, "'('", next);
+            if (!REDUCING) throw "not reducing";
+        }
+        while (tokens.length > 0 && tokens.get(0).data != ")") {
+            children.push(Param(errors, tokens));
+        }
+        if (tokens.length == 0) {
+            throwEx(errors, type, ")", {});
+            if (!REDUCING) throw "not reducing";
+        } else {
+            tokens.remove(0);
+        }
     }
     return new Node(token,type,children);
 }
-function Param(tokens) {
+function Param(errors,tokens) {
     var type =  PARAM;
     console.log(type);
     var token = tokens.get(0);
     var children = [];
-    children.push(Term(tokens));
+    children.push(Term(errors,tokens));
+
     return new Node(token,type,children);
 }
-function MultDiv(tokens) {
+function MultDiv(errors,tokens) {
     console.log("Mult-Div");
-    reverseTerms(isMult,tokens);
-    return MDiv(tokens);
+    reverseTerms(isMult,errors,tokens);
+    return MDiv(errors,tokens);
 }
 function rebuild(node) {
-    return {type: node.ttype, data: node.data, line: node.line, index: node.index };
+    if (node == null) return {type: "UNKNOWN", data: "", line: 0, index: 0 };
+    if ("type" in node && "data" in node && "line" in node && "index" in node) {
+        return {type: node.ttype, data: node.data, line: node.line, index: node.index};
+    }
+    return {type: "UKNOWN", data: "", line: 0, index: 0};
 }
-function reverseTerms(op_func,tokens) {
+function reverseTerms(op_func,errors,tokens) {
     console.log("before:");
-    console.log(tokens);
+    console.log(errors,tokens);
     var t = [];
     var count = 0;
     t.unshift(tokens.remove(0));
@@ -192,12 +248,12 @@ function reverseTerms(op_func,tokens) {
         tokens.unshift(t.remove(0));
     }
     console.log("after: " + count);
-    console.log(tokens);
+    console.log(errors,tokens);
 }
-function MDiv(tokens) {
+function MDiv(errors,tokens) {
     console.log("MDIV");
     var type = MULTDIV;
-    var term = Term(tokens);
+    var term = Term(errors,tokens);
     if (tokens.length > 2) {
         var next = tokens.remove(0);
         var next2 = tokens.remove(0);
@@ -205,26 +261,26 @@ function MDiv(tokens) {
         tokens.unshift(next2);
         tokens.unshift(next);
         if (peek.type == OPERATOR && isMult(peek.data)) {
-            var op = Operator(tokens);
-            var md = MDiv(tokens);
+            var op = Operator(errors,tokens);
+            var md = MDiv(errors,tokens);
             var children = [term, op, md];
             return new Node(rebuild(children[0]), type, children);
         } else {
-            var op = Operator(tokens);
-            var md = Term(tokens);
+            var op = Operator(errors,tokens);
+            var md = Term(errors,tokens);
             var children = [term,op,md];
             return new Node(rebuild(children[0]),type,children);
         }
     } else if (tokens.length > 1) {
-        var op = Operator(tokens);
-        var md = Term(tokens);
+        var op = Operator(errors,tokens);
+        var md = Term(errors,tokens);
         var children = [term,op,md];
         return new Node(rebuild(children[0]),type,children);
     } else {
             return term;
     }
 }
-function Operator(tokens) {
+function Operator(errors,tokens) {
     var token = tokens.remove(0);
     var type =  OPERATOR;
     console.log(type);
@@ -233,14 +289,14 @@ function Operator(tokens) {
         case OPERATOR:
             break;
         default:
-            throwEx(type,"OPERATOR",token);
-            return;
+            throwEx(errors,type,"OPERATOR",token);
+            if (!REDUCING) throw "not reducing";
     }
     return new Node(token,type,children);
 }
-function Function(tokens) {
+function Function(errors,tokens) {
     var token = tokens.get(0);
-    var type =  FN;
+    var type = FN;
     console.log(type);
     var children = [];
     var token = tokens.remove(0);
@@ -250,32 +306,34 @@ function Function(tokens) {
                 case "fn":
                     break;
                 default:
-                    throwEx(type,"'fn'",token);
+                    throwEx(errors,type,"'fn'",token);
                     return;
             }
             break;
         default:
-            throwEx(type,"'fn'",token);
+            throwEx(errors,type,"'fn'",token);
             return;
     }
-    children.push(FuncName(tokens));
+    children.push(FuncName(errors,tokens));
     var peek = tokens.get(0);
     switch (peek.type) {
         case WORD:
         case NUMBER:
-            children.push(Operands(tokens));
+            children.push(Operands(errors,tokens));
             break;
         case FN_OPERATOR:
             break;
         default:
-            throwEx(type,FN_OPERATOR,peek);
+            throwEx(errors,type,FN_OPERATOR,peek);
             return;
     }
-    children.push(FuncOperator(tokens));
-    children.push(Expression(tokens));
+    children.push(FuncOperator(errors,tokens));
+    REDUCING = true;
+    children.push(Expression(errors,tokens));
+    REDUCING = false;
     return new Node(token,type,children);
 }
-function FuncName(tokens) {
+function FuncName(errors,tokens) {
     var type =  FN_NAME;
     console.log(type);
     var children = [];
@@ -284,36 +342,37 @@ function FuncName(tokens) {
         case WORD:
             break;
         default:
-            throwEx(type,"WORD",token);
+            throwEx(errors,type,"WORD",token);
             return;
     }
     return new Node(token,type,children);
 }
-function FuncOperator(tokens) {
+function FuncOperator(errors,tokens) {
     var type =  FN_OPERATOR;
     console.log(type);
     var children = [];
-    var token = tokens.remove();
+    var token = tokens.remove(0);
     switch(token.type) {
         case FN_OPERATOR:
             break;
         default:
-            throwEx(type,"'=>'",token);
+            throwEx(errors,type,"'=>'",token);
             return;
     }
     return new Node(token,type,children);
 }
-function Operands(tokens) {
+function Operands(errors,tokens) {
     var type =  OPERANDS;
     console.log(type);
     var children = [];
-    next = tokens.get(0);
+    var next = tokens.get(0);
+    var token = next;
     if (next.type == WORD) {
         variables = [];
     }
     while (next != null && next.type == WORD) {
         if (tokens.length > 0) {
-            op = Operand(tokens);
+            op = Operand(errors,tokens);
             children.push(op);
             variables.push(op.data);
             if (tokens.length > 0) {
@@ -329,7 +388,7 @@ function Operands(tokens) {
     }
     return new Node(token,type,children);
 }
-function Operand(tokens) {
+function Operand(errors,tokens) {
     var type =  OPERAND;
     console.log(type);
     var children = [];
@@ -338,42 +397,182 @@ function Operand(tokens) {
         case WORD:
             break;
         default:
-            throwEx(type,"WORD",token);
+            throwEx(errors,type,"WORD",token);
             return;
     }
     return new Node(token,type,children);
 }
-function parse(tokens) {
+function parse(errors,tokens) {
     console.log("parsing: " + tokens);
-    tokens = JSON.parse(tokens);
-    var peek = tokens.get(0);
-    if (peek.data == "fn") {
-        return Function(tokens);
+    try {
+        tokens = JSON.parse(tokens);
+        var peek = tokens.get(0);
+        var val = "{}";
+        if (peek.data == "fn") {
+            val = Function(errors, tokens);
+        } else {
+            val = Expressions(errors, tokens);
+        }
+        if (errors.length > 0) return JSON.stringify(errors);
+        return val;
+    } catch (err) {
+        return errors;
     }
-    return Expressions(tokens);
 }
-function execute(node) {
+function execute(errors,node,vars) {
     console.log(JSON.stringify(node));
+    REDUCING = false;
     var children = node.children;
     var type = node.type;
     var data = node.data;
-    switch(type) {
+    try {
+        switch (type) {
+            case EXPRESSIONS:
+                if (children.length > 1) {
+                    execute(errors, children[0], vars);
+                    return execute(errors, children[1], vars);
+                } else {
+                    return execute(errors, children[0], vars);
+                }
+            case EXPRESSION:
+                if (children.length == 1) {
+                    return execute(errors, children[0], vars);
+                }
+                if (children.length == 3) {
+                    var left = execute(errors, children[0], vars);
+                    var right = execute(errors, children[2], vars);
+                    console.log(right + " * " + left);
+                    switch (children[1].data) {
+                        case "*":
+                            return left * right;
+                        case "/":
+                            return left / right;
+                        case "%":
+                            return left % right;
+                        case "+":
+                        case " ":
+                            return left + right;
+                        case "-":
+                            return left - right;
+                        default:
+                            throwEx(errors, type, "* / % + -", children[1].data);
+                            return;
+                    }
+                } else {
+                    throwEx(errors, type, "1 or 3 children", children.length + " children");
+                    return;
+                }
+            case MULTDIV:
+                if (children.length == 1) {
+                    return execute(errors, children[0], vars);
+                } else if (children.length == 3) {
+                    var left = execute(errors, children[0], vars);
+                    var right = execute(errors, children[2], vars);
+                    switch (children[1].data) {
+                        case "*":
+                            return right * left;
+                        case "/":
+                            return right / left;
+                        case "%":
+                            return right % left;
+                        case "+":
+                            return right + left;
+                        case "-":
+                            return right - left;
+                        default:
+                            throwEx(errors, type, "* / %", children[1].data);
+                            return;
+                    }
+                } else {
+                    throwEx(errors, type, "1 or 3 children", children.length + " children");
+                    return;
+                }
+            case TERM:
+                if (children.length == 1) {
+                    return execute(errors, children[0], vars);
+                } else {
+                    throwEx(errors, type, "1 child", children.length + " children");
+                    return;
+                }
+            case FN_CALL:
+                if (children.length == 1) {
+                    return fn_call(children[0], vars);
+                } else {
+                    throwEx(errors, type, "1 child", children.length + " children");
+                    return;
+                }
+            case ASSIGNMENT:
+                if (vars != null) {
+                    var ret = execute(errors, children[0], vars);
+                    vars[data] = ret;
+                    return ret;
+                } else {
+                    vars = {};
+                    var ret = execute(errors, children[0], vars);
+                    vars[data] = ret;
+                    return ret;
+                }
+                return;
+            case NUMBER:
+                return +data;
+            case FN:
+                if (functions == null) {
+                    functions = {};
+                }
+                var index = 2;
+                var params = 0;
+                if (children[1].type == FN_OPERATOR) {
+                    params = 0;
+                } else {
+                    index += 1;
+                    params = children[1].children.length;
+                }
+                functions[children[0].data] = {
+                    params: params,
+                    fn: reduce(errors, children[index])
+                };
+                REDUCING = false;
+                return functions[children[0].data];
+            case STRING:
+                return data;
+            default:
+                throwEx(errors, type, "KNOWN TYPE", rebuild(node));
+                return;
+        }
+    } catch (err) {
+        console.log("CRASHED");
+        return;
+    }
+}
+function reduce(errors, node) {
+    REDUCING = true;
+    console.log("REDUCE: " + JSON.stringify(node));
+    var children;
+    if ("children" in node) {
+        children = node.children;
+    } else {
+        node.type = IDENTIFIER;
+        return node;
+    }
+    var type = node.type;
+    var data = node.data;
+    switch (type) {
         case EXPRESSIONS:
             if (children.length > 1) {
-                execute(children[0]);
-                return execute(children[1]);
+                reduce(errors, children[0]);
+                return reduce(errors, children[1]);
             } else {
-                return execute(children[0]);
+                return reduce(errors, children[0]);
             }
         case EXPRESSION:
             if (children.length == 1) {
-                return execute(children[0]);
+                return reduce(errors, children[0]);
             }
             if (children.length == 3) {
-                var left = execute(children[0]);
-                var right = execute(children[2]);
+                var left = reduce(errors, children[0]);
+                var right = reduce(errors, children[2]);
                 console.log(right + " * " + left);
-                switch(children[1].data) {
+                switch (children[1].data) {
                     case "*":
                         return left * right;
                     case "/":
@@ -386,19 +585,19 @@ function execute(node) {
                     case "-":
                         return left - right;
                     default:
-                        throwEx(type,"* / % + -",children[1].data);
+                        throwEx(errors, type, "* / % + -", children[1].data);
                         return;
                 }
             } else {
-                throwEx(type,"1 or 3 children",children.length + " children");
+                throwEx(errors, type, "1 or 3 children", children.length + " children");
                 return;
             }
         case MULTDIV:
             if (children.length == 1) {
-                return execute(children[0]);
+                return reduce(errors, children[0]);
             } else if (children.length == 3) {
-                var left = execute(children[0]);
-                var right = execute(children[2]);
+                var left = reduce(errors, children[0]);
+                var right = reduce(errors, children[2]);
                 switch (children[1].data) {
                     case "*":
                         return right * left;
@@ -411,47 +610,60 @@ function execute(node) {
                     case "-":
                         return right - left;
                     default:
-                        throwEx(type,"* / %",children[1].data);
+                        throwEx(errors, type, "* / % + -", children[1].data);
                         return;
                 }
             } else {
-                throwEx(type,"1 or 3 children",children.length + " children");
+                throwEx(errors, type, "1 or 3 children", children.length + " children");
                 return;
             }
         case TERM:
             if (children.length == 1) {
-                return execute(children[0]);
+                return reduce(errors, children[0]);
             } else {
-                throwEx(type,"1 child",children.length + " children");
+                node.type = IDENTIFIER;
+                return node;
                 return;
             }
         case FN_CALL:
-            if (children.length == 1) {
-                return fn_call(children[0]);
-            } else {
-                throwEx(type,"1 child",children.length + " children");
-                return;
-            }
+            node.type = IDENTIFIER;
+            return node;
         case ASSIGNMENT:
-            if (variables != null) {
-                var ret = execute(children[0]);
-                variables[data] = ret;
+            if (vars != null) {
+                var ret = reduce(errors, children[0]);
+                vars[data] = ret;
                 return ret;
             } else {
-                variables = {};
-                var ret = execute(children[0]);
-                variables[data] = ret;
+                vars = {};
+                var ret = reduce(errors, children[0]);
+                vars[data] = ret;
                 return ret;
             }
             return;
         case NUMBER:
             return +data;
+        case FN:
+            if (functions == null) {
+                functions = {};
+            }
+            var index = 2;
+            var params = 0;
+            if (children[1].type == FN_OPERATOR) {
+                params = 0;
+            } else {
+                index += 1;
+                params = children[1].children.length;
+            }
+            functions[children[0].data] = {
+                params: params,
+                fn: children[index]
+            };
+            return functions[children[0].data];
+        case STRING:
+            return data;
         default:
-            throwEx(type,"KNOWN TYPE",type);
+            throwEx(errors, type, "KNOWN TYPE", rebuild(node));
             return;
     }
-}
-function reduce(node) {
-
 }
 module.exports = {parse: parse,execute: execute,reduce: reduce};

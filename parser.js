@@ -10,6 +10,9 @@ Array.prototype.get = function(index) {
 function isMult(x) {
     return x.length == 1 && x.match(/[\*\/\%]/g);
 }
+function isAddSub(x) {
+    return x.length == 1 && x.match(/[\+\-]/g);
+}
 functions = {};
 UNKNOWN = "UNKOWN";
 IDENTIFIER = "ID";
@@ -57,19 +60,16 @@ function throwEx(errors, type, msg, token) {
     if (!errors.includes(error)) errors.push(error);
 }
 function Expressions(errors,tokens) {
+    console.log("expressionS");
     var token = tokens.get(0);
     var type =  EXPRESSIONS;
     var children = [];
     children.push(Expression(errors,tokens));
     if (tokens.length > 0) {
         peek = tokens.get(0);
-        if (peek.type == OPERATOR) {
+        if (peek.type == OPERATOR && ![",",")"].includes(peek.data)) {
             children.push(Operator(errors,tokens));
             children.push(Expressions(errors,tokens));
-            if (tokens.length != 0) {
-                throwEx(errors,type, "NO MORE TOKENS", tokens.get(0));
-                return;
-            }
         }
     }
     return new Node(token,type,children);
@@ -113,7 +113,7 @@ function Term(errors,tokens) {
                     type = FN_CALL;
                     var peek = tokens.get(0);
                     if (tokens.length > 0 && peek.type == OPERATOR && peek.data == "(") {
-                        children.push(Params(token.data, errors, tokens));
+                        children.push(Params(errors, token.data, tokens));
                     }
                     break;
                 }
@@ -127,7 +127,7 @@ function Term(errors,tokens) {
             else if (tokens.length > 0 && tokens.get(0).data == "=") {
                 type = ASSIGNMENT;
                 tokens.remove(0); // eat = sign
-                children.push(Expression(errors,tokens));
+                children.push(Expressions(errors,tokens));
             } else {
                 throwEx(errors, type, "DECLARED VARIABLE or FUNCTION",token);
                 if (!REDUCING) throw "not reducing";
@@ -141,7 +141,7 @@ function Term(errors,tokens) {
             break;
         case OPERATOR:
             if (token.data == "(") {
-                children.push(Expression(errors,tokens));
+                children.push(Expressions(errors,tokens));
                 close = tokens.remove(0);
                 if (close.data != ")") {
                     throwEx(errors,type,"ENCLOSED EXPRESSION with CLOSING PARENTHESIS",close);
@@ -202,6 +202,9 @@ function Params(errors,fn_name, tokens) {
         }
         while (tokens.length > 0 && tokens.get(0).data != ")") {
             children.push(Param(errors, tokens));
+            if (tokens.get(0).type == OPERATOR && tokens.get(0).data == ",") {
+                tokens.remove(0); // eat ,
+            }
         }
         if (tokens.length == 0) {
             throwEx(errors, type, ")", {});
@@ -217,8 +220,7 @@ function Param(errors,tokens) {
     console.log(type);
     var token = tokens.get(0);
     var children = [];
-    children.push(Term(errors,tokens));
-
+    children.push(Expressions(errors,tokens));
     return new Node(token,type,children);
 }
 function MultDiv(errors,tokens) {
@@ -249,6 +251,7 @@ function reverseTerms(op_func,errors,tokens) {
     }
     console.log("after: " + count);
     console.log(errors,tokens);
+    return count;
 }
 function MDiv(errors,tokens) {
     console.log("MDIV");
@@ -271,13 +274,13 @@ function MDiv(errors,tokens) {
             var children = [term,op,md];
             return new Node(rebuild(children[0]),type,children);
         }
-    } else if (tokens.length > 1) {
+    } else if (tokens.length > 1 && isMult(tokens.get(0).data)) {
         var op = Operator(errors,tokens);
         var md = Term(errors,tokens);
         var children = [term,op,md];
         return new Node(rebuild(children[0]),type,children);
     } else {
-            return term;
+        return term;
     }
 }
 function Operator(errors,tokens) {
@@ -329,7 +332,7 @@ function Function(errors,tokens) {
     }
     children.push(FuncOperator(errors,tokens));
     REDUCING = true;
-    children.push(Expression(errors,tokens));
+    children.push(Expressions(errors,tokens));
     REDUCING = false;
     return new Node(token,type,children);
 }
@@ -487,6 +490,16 @@ function execute(errors,node,vars) {
                     throwEx(errors, type, "1 or 3 children", children.length + " children");
                     return;
                 }
+            case IDENTIFIER:
+                if (data in vars) {
+                    return vars[data];
+                } else if (data in variables) {
+                    return variables[data];
+                } else if (data in functions) {
+                    return fn_call(errors,data,{},vars);
+                } else {
+                    return data;
+                }
             case TERM:
                 if (children.length == 1) {
                     return execute(errors, children[0], vars);
@@ -496,7 +509,7 @@ function execute(errors,node,vars) {
                 }
             case FN_CALL:
                 if (children.length == 1) {
-                    return fn_call(children[0], vars);
+                    return fn_call(errors, data, children[0], vars);
                 } else {
                     throwEx(errors, type, "1 child", children.length + " children");
                     return;
@@ -515,6 +528,11 @@ function execute(errors,node,vars) {
                 return;
             case NUMBER:
                 return +data;
+            case PARAM:
+                if (children.length > 0) {
+                    return execute(errors, children[0], vars);
+                }
+                return data;
             case FN:
                 if (functions == null) {
                     functions = {};
@@ -522,14 +540,20 @@ function execute(errors,node,vars) {
                 var index = 2;
                 var params = 0;
                 if (children[1].type == FN_OPERATOR) {
-                    params = 0;
+                    params = [];
                 } else {
-                    index += 1;
-                    params = children[1].children.length;
+                    params = [];
+                    var parameters = children[1].children;
+                    for (var i = 0; i < parameters.length; i++) {
+                        var child = parameters[i];
+                        var ret = reduce(errors,child,vars);
+                        params.push(child);
+                    }
+                    index ++;
                 }
                 functions[children[0].data] = {
                     params: params,
-                    fn: reduce(errors, children[index])
+                    fn: reduce(errors, children[index], vars)
                 };
                 REDUCING = false;
                 return functions[children[0].data];
@@ -540,11 +564,34 @@ function execute(errors,node,vars) {
                 return;
         }
     } catch (err) {
-        console.log("CRASHED");
+        console.log(err);
+        console.log("CRASHED: " + err);
         return;
     }
 }
-function reduce(errors, node) {
+function fn_call(errors, name, params, vars) {
+    console.log("CALLING " + name);
+    console.log(params);
+    console.log(functions[name]);
+    var fn = functions[name];
+    var operands = fn.params;
+    var parameters = {};
+    if (params.children.length != operands.length) {
+        throwEx(errors,"UNKKNOWN","Correct number of operands. " + name + JSON.stringify(operands),params.children.length + " operands");
+        if (!REDUCING) {
+            throw "not reducing";
+        }
+    }
+    for (i = 0; i < operands.length; i++) {
+        var opname = operands[i];
+        opname = reduce(errors,opname,vars);
+        var param = params.children[i];
+        var ret = execute(errors,param,vars);
+        parameters[opname] = ret;
+    }
+    return execute(errors, fn.fn,parameters);
+}
+function reduce(errors, node, vars) {
     REDUCING = true;
     console.log("REDUCE: " + JSON.stringify(node));
     var children;
@@ -559,18 +606,18 @@ function reduce(errors, node) {
     switch (type) {
         case EXPRESSIONS:
             if (children.length > 1) {
-                reduce(errors, children[0]);
-                return reduce(errors, children[1]);
+                reduce(errors, children[0], vars);
+                return reduce(errors, children[1], vars);
             } else {
-                return reduce(errors, children[0]);
+                return reduce(errors, children[0], vars);
             }
         case EXPRESSION:
             if (children.length == 1) {
-                return reduce(errors, children[0]);
+                return reduce(errors, children[0], vars);
             }
             if (children.length == 3) {
-                var left = reduce(errors, children[0]);
-                var right = reduce(errors, children[2]);
+                var left = reduce(errors, children[0], vars);
+                var right = reduce(errors, children[2], vars);
                 console.log(right + " * " + left);
                 switch (children[1].data) {
                     case "*":
@@ -594,10 +641,10 @@ function reduce(errors, node) {
             }
         case MULTDIV:
             if (children.length == 1) {
-                return reduce(errors, children[0]);
+                return reduce(errors, children[0], vars);
             } else if (children.length == 3) {
-                var left = reduce(errors, children[0]);
-                var right = reduce(errors, children[2]);
+                var left = reduce(errors, children[0], vars);
+                var right = reduce(errors, children[2], vars);
                 switch (children[1].data) {
                     case "*":
                         return right * left;
@@ -618,24 +665,33 @@ function reduce(errors, node) {
                 return;
             }
         case TERM:
+        case OPERAND:
             if (children.length == 1) {
-                return reduce(errors, children[0]);
+                return reduce(errors, children[0], vars);
             } else {
                 node.type = IDENTIFIER;
                 return node;
                 return;
             }
+        case IDENTIFIER:
+            if (data in vars) {
+                return vars[data];
+            } else if (data in variables) {
+                return variables[data];
+            } else if (data in functions) {
+                return fn_call(errors,data,{},vars);
+            } else return data;
         case FN_CALL:
             node.type = IDENTIFIER;
             return node;
         case ASSIGNMENT:
             if (vars != null) {
-                var ret = reduce(errors, children[0]);
+                var ret = reduce(errors, children[0], vars);
                 vars[data] = ret;
                 return ret;
             } else {
                 vars = {};
-                var ret = reduce(errors, children[0]);
+                var ret = reduce(errors, children[0], vars);
                 vars[data] = ret;
                 return ret;
             }
@@ -646,13 +702,12 @@ function reduce(errors, node) {
             if (functions == null) {
                 functions = {};
             }
-            var index = 2;
-            var params = 0;
+            var index = 1;
+            var params = [];
             if (children[1].type == FN_OPERATOR) {
-                params = 0;
+                params = [];
             } else {
-                index += 1;
-                params = children[1].children.length;
+                params = children[1].children;
             }
             functions[children[0].data] = {
                 params: params,

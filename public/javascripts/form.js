@@ -81,7 +81,7 @@ function call(line) {
         }
     });
 }
-var types = ["TERM","NUMBER","ID","STRING","OPERATOR"];
+var types = ["TERM","NUMBER","ID","STRING","OPERATOR","ASSIGNMENT","FN_NAME"];
 function createDiv(node) {
     var data = "";
     if (types.includes(node.type)) data = node.data;

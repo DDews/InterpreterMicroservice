@@ -9,7 +9,7 @@ String.prototype.isWs = function() {
     return this.length == 1 && this.match(/[\s\n]/i);
 }
 String.prototype.isOperator = function() {
-    return this.length == 1 && this.match(/[\"\'\,\+|-|\*|\/|=|>|<|>=|<=|&|\||%|!|\^|\(|\)]/i);
+    return this.length == 1 && this.match(/[\;\{\}\"\'\,\+\-\.|\*|\/|=|>|<|>=|<=|&|\||%|!|\^|\(|\)]/i);
 }
 String.prototype.type = function () {
     if (this.isDigit()) return "DIGIT";
@@ -23,6 +23,7 @@ STRING = "STRING";
 WORD = "WORD";
 NUMBER = "NUMBER";
 COMMENT = "COMMENT";
+COMMENT_START = "COMMENT_START";
 class Token {
     constructor(line, index) {
         this.type = "unknown";
@@ -44,6 +45,7 @@ class State {
         this.LITERAL = 6;
         this.DECIMAL = 7;
         this.FN_OPERATOR = 8;
+        this.COMMENT_START = 9;
     }
 }
 WS = "WHITESPACE";
@@ -105,8 +107,8 @@ function lex(errors,input) {
                             state = STATE.STRING;
                             SAME_QUOTE = x;
                         }
-                        else if (x == ";") {
-                            state = STATE.COMMENT;
+                        else if (x == "/") {
+                            state = STATE.COMMENT_START;
                         } else if (x == "=") {
                             state = STATE.FN_OPERATOR;
                             token.data += x;
@@ -192,6 +194,21 @@ function lex(errors,input) {
                     case LETTER:
                     default:
                         throwEx(state,"WHITESPACE or DIGIT or OPERATOR",x);
+                }
+                break;
+            case STATE.COMMENT_START:
+                switch(x) {
+                    case "/":
+                        state = STATE.COMMENT;
+                        break;
+                    default:
+                        token.type = OPERATOR;
+                        token.data = "/";
+                        tokens.push(token);
+                        token = new Token(line,i);
+                        state = STATE.START;
+                        i--; // put back char
+                        break;
                 }
                 break;
             case STATE.COMMENT:

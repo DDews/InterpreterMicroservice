@@ -4,7 +4,8 @@ var parser = require('../parser.js');
 var parse = parser.parse;
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-    res.send(parse(req.query.parse));
+    var errors = [];
+    res.send(JSON.stringify(parse(errors,req.query.parse)));
 });
 
 module.exports = router;

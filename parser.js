@@ -14,6 +14,7 @@ function isAddSub(x) {
     return x.length == 1 && x.match(/[\+\-]/g);
 }
 functions = {};
+STATEMENTS = "STATEMENTS";
 UNKNOWN = "UNKOWN";
 IDENTIFIER = "ID";
 WORD = "WORD";
@@ -59,6 +60,38 @@ function throwEx(errors, type, msg, token) {
     console.log(error);
     if (!errors.includes(error)) errors.push(error);
 }
+function Statements(errors,tokens) {
+    console.log("statementS");
+    var token = tokens.get(0);
+    var type = STATEMENTS;
+    var children = [];
+    if (token.type == OPERATOR && token.data == "{") {
+        children.remove(0);
+        children.push(Statements(errors,tokens));
+        if (tokens.length == 0) {
+            throwEx(errors, type, "CLOSING '}'", "NO TOKENS");
+            return;
+        }
+        var peek = tokens.get(0);
+        if (peek.type == OPERATOR) {
+            if (peek.data == "}") {
+                tokens.remove(0);
+            } else {
+                throwEx(errors,type,"CLOSING '}'",peek);
+                return;
+            }
+        }
+    }
+    children.push(Expressions(errors,tokens));
+    if (tokens.length > 0) {
+        var peek = tokens.get(0);
+        if (peek.type == OPERATOR && peek.data == ";") {
+            tokens.remove(0);
+            children.push(Statements(errors,tokens));
+        }
+    }
+    return new Node(token,type,children);
+}
 function Expressions(errors,tokens) {
     console.log("expressionS");
     var token = tokens.get(0);
@@ -67,7 +100,7 @@ function Expressions(errors,tokens) {
     children.push(Expression(errors,tokens));
     if (tokens.length > 0) {
         peek = tokens.get(0);
-        if (peek.type == OPERATOR && ![",",")"].includes(peek.data)) {
+        if (peek.type == OPERATOR && ![",",")",";"].includes(peek.data)) {
             children.push(Operator(errors,tokens));
             children.push(Expressions(errors,tokens));
         }
@@ -337,7 +370,7 @@ function Function(errors,tokens) {
     }
     children.push(FuncOperator(errors,tokens));
     REDUCING = true;
-    children.push(Expressions(errors,tokens));
+    children.push(Statements(errors,tokens));
     REDUCING = false;
     return new Node(token,type,children);
 }
@@ -414,16 +447,12 @@ function parse(errors,tokens) {
     console.log("parsing: " + tokens);
     try {
         tokens = JSON.parse(tokens);
-        var peek = tokens.get(0);
         var val = "{}";
-        if (peek.data == "fn") {
-            val = Function(errors, tokens);
-        } else {
-            val = Expressions(errors, tokens);
-        }
+        val = Statements(errors, tokens);
         if (errors.length > 0) return JSON.stringify(errors);
         return val;
     } catch (err) {
+        if (errors.length == 0) return [err];
         return errors;
     }
 }
@@ -435,6 +464,7 @@ function execute(errors,node,vars) {
     var data = node.data;
     try {
         switch (type) {
+            case STATEMENTS:
             case EXPRESSIONS:
                 if (children.length > 1) {
                     execute(errors, children[0], vars);
@@ -568,9 +598,10 @@ function execute(errors,node,vars) {
                 return node;
         }
     } catch (err) {
-        console.log(err);
+        console.log(err.message);
         console.log("CRASHED: " + err);
-        return;
+        errors.push(err.message);
+        return err.message;
     }
 }
 function getOperands(operands) {
@@ -624,6 +655,7 @@ function reduce(errors, node, vars) {
     var type = node.type;
     var data = node.data;
     switch (type) {
+        case STATEMENTS:
         case EXPRESSIONS:
             if (children.length > 1) {
                 reduce(errors, children[0], vars);

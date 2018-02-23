@@ -1,5 +1,9 @@
 _history = [];
 _line = 0;
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.replace(new RegExp(search, 'g'), replacement);
+};
 function enterKey() {
    switch (event.keyCode) {
        case 38: //up
@@ -41,23 +45,23 @@ function call(line) {
     else if (lexing) request = "/lexer?lex=";
     else if (parsing) request = "/parser?parse="
     else if (lexparsing) request = "/lexer?lex=";
-    request += encodeURI(line).replace("+","%2B");
+    request += encodeURI(line).replaceAll("\\+","%2B");
     $.get(request, function (data) {
        var info = "Error: Service down.";
         try {
            info = JSON.parse(data);
            console.log(typeof(info[0]));
-           if (lexing || parsing) info = JSON.stringify(info);
+           if (parsing) info = JSON.stringify(info);
            else if (lexparsing) {
-               request = "/parser?parse=" + encodeURI(JSON.stringify(info)).replace("+","%2B");
+               request = "/parser?parse=" + encodeURI(JSON.stringify(info)).replaceAll("\\+","%2B");
                 $.get(request, function (n) {
                    info = JSON.parse(n);
                    console.log(info);
                    var div = createDiv(info);
                    $(".code").append(div);
-                   $(".scroll").scrollTop($(".scroll").height());
+                   $(".scroll").scrollTop($(".code").height());
                 });
-           } else {
+           } else if (!lexing) {
                info = info[1];
            }
            if (lexing) {
@@ -77,7 +81,7 @@ function call(line) {
        }
        if (!lexparsing) {
             $(".code").append("<b>" + info + "</b>\n");
-           $(".scroll").scrollTop($(".scroll").height());
+           $(".scroll").scrollTop($(".code").height());
         }
     });
 }

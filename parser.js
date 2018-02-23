@@ -20,6 +20,7 @@ IDENTIFIER = "ID";
 WORD = "WORD";
 NUMBER = "NUMBER";
 MULTDIV = "MULTDIV";
+MULTTERM = "MULTTERM";
 TERM = "TERM";
 EXPRESSION = "EXPRESSION";
 EXPRESSIONS = "EXPRESSIONS";
@@ -81,6 +82,7 @@ function Statements(errors,tokens) {
                 return;
             }
         }
+        return new Node(token,type,children);
     }
     children.push(Expressions(errors,tokens));
     if (tokens.length > 0) {
@@ -121,7 +123,7 @@ function Expression(errors,tokens) {
                 case " ":
                 case "-":
                     children.push(Operator(errors,tokens));
-                    children.push(Expression(errors,tokens));
+                    children.push(MultDiv(errors,tokens));
                     break;
                 default:
             }
@@ -263,7 +265,7 @@ function Param(errors,tokens) {
 }
 function MultDiv(errors,tokens) {
     console.log("Mult-Div");
-    reverseTerms(isMult,errors,tokens);
+    var num = reverseTerms(isMult,errors,tokens);
     return MDiv(errors,tokens);
 }
 function rebuild(node) {
@@ -273,13 +275,26 @@ function rebuild(node) {
     }
     return {type: "UKNOWN", data: "", line: 0, index: 0};
 }
+function sneak(tokens, index) {
+    if (tokens.length < index + 1) return tokens.get(0);
+    var stack = [];
+    for (var i = 0; i < index; i++) {
+        stack.unshift(tokens.remove(0));
+    }
+    var peek = tokens.get(0);
+    while (stack.length > 0) {
+        tokens.unshift(stack.remove(0));
+    }
+    return peek;
+}
 function reverseTerms(op_func,errors,tokens) {
     console.log("before:");
     console.log(errors,tokens);
     var t = [];
     var count = 0;
+    if (sneak(tokens,2).type == OPERATOR) return 1;
     t.unshift(tokens.remove(0));
-    while (tokens.length > 0 && op_func(tokens.get(0).data)) {
+    while (tokens.length > 0 && op_func(tokens.get(0).data) && sneak(tokens,1).type != OPERATOR) {
         count++;
         t.push(tokens.remove(0));
         t.push(tokens.remove(0));
@@ -291,11 +306,46 @@ function reverseTerms(op_func,errors,tokens) {
     console.log(errors,tokens);
     return count;
 }
+function MultTerm(errors, tokens) {
+    console.log("MultTerm");
+    reverseTerms(isAddSub,errors,tokens);
+    return MTerm(errors,tokens);
+}
+function MTerm(errors,tokens) {
+    console.log("MTERM");
+    var type = MULTTERM;
+    var term = Term(errors,tokens);
+    if (tokens.length > 2 && tokens.get(0).type == OPERATOR && isAddSub(tokens.get(0).data)) {
+        var next = tokens.remove(0);
+        var next2 = tokens.remove(0);
+        var peek = tokens.get(0);
+        tokens.unshift(next2);
+        tokens.unshift(next);
+        if (peek.type == OPERATOR && isAddSub(peek.data)) {
+            var op = Operator(errors,tokens);
+            var md = MTerm(errors,tokens);
+            var children = [term, op, md];
+            return new Node(rebuild(children[0]), type, children);
+        } else {
+            var op = Operator(errors,tokens);
+            var md = Term(errors,tokens);
+            var children = [md,op,term];
+            return new Node(rebuild(children[0]),type,children);
+        }
+    } else if (tokens.length > 1 && isAddSub(tokens.get(0).data)) {
+        var op = Operator(errors,tokens);
+        var md = Term(errors,tokens);
+        var children = [term,op,md];
+        return new Node(rebuild(children[0]),type,children);
+    } else {
+        return term;
+    }
+}
 function MDiv(errors,tokens) {
     console.log("MDIV");
     var type = MULTDIV;
     var term = Term(errors,tokens);
-    if (tokens.length > 2) {
+    if (tokens.length > 2 && tokens.get(0).type == OPERATOR && isMult(tokens.get(0).data)) {
         var next = tokens.remove(0);
         var next2 = tokens.remove(0);
         var peek = tokens.get(0);
@@ -306,11 +356,13 @@ function MDiv(errors,tokens) {
             var md = MDiv(errors,tokens);
             var children = [term, op, md];
             return new Node(rebuild(children[0]), type, children);
-        } else {
+        } else if (peek.data != ")") {
             var op = Operator(errors,tokens);
             var md = Term(errors,tokens);
             var children = [term,op,md];
             return new Node(rebuild(children[0]),type,children);
+        } else {
+            return term;
         }
     } else if (tokens.length > 1 && isMult(tokens.get(0).data)) {
         var op = Operator(errors,tokens);
@@ -466,9 +518,11 @@ function execute(errors,node,vars) {
         switch (type) {
             case STATEMENTS:
             case EXPRESSIONS:
-                if (children.length > 1) {
+                if (children.length == 2) {
                     execute(errors, children[0], vars);
                     return execute(errors, children[1], vars);
+                } else if (children.length == 3) {
+                    // fall through
                 } else {
                     return execute(errors, children[0], vars);
                 }
@@ -479,8 +533,11 @@ function execute(errors,node,vars) {
                 if (children.length == 3) {
                     var left = children[0];
                     var right = children[2];
-                    if (left instanceof Object) left = execute(errors, children[0], vars);
-                    if (right instanceof Object) right = execute(errors, children[2], vars);
+                    if (left instanceof Object) left = execute(errors, left, vars);
+                    if (right instanceof Object) right = execute(errors, right, vars);
+                    console.log(node);
+                    console.log(right);
+                    console.log(left);
                     console.log(right + " OP " + left);
                     switch (children[1].data) {
                         case "*":
@@ -503,11 +560,13 @@ function execute(errors,node,vars) {
                     return;
                 }
             case MULTDIV:
+            case MULTTERM:
                 if (children.length == 1) {
                     return execute(errors, children[0], vars);
                 } else if (children.length == 3) {
                     var left = execute(errors, children[0], vars);
                     var right = execute(errors, children[2], vars);
+                    console.log(right + " " + children[1].data + " " + left);
                     switch (children[1].data) {
                         case "*":
                             return right * left;
@@ -657,10 +716,13 @@ function reduce(errors, node, vars) {
     switch (type) {
         case STATEMENTS:
         case EXPRESSIONS:
-            if (children.length > 1) {
+            if (children.length == 2) {
                 reduce(errors, children[0], vars);
                 return reduce(errors, children[1], vars);
-            } else {
+            } else if (children.length == 3) {
+                // fall through
+            }
+            else {
                 return reduce(errors, children[0], vars);
             }
         case EXPRESSION:
@@ -670,6 +732,8 @@ function reduce(errors, node, vars) {
             if (children.length == 3) {
                 var left = reduce(errors, children[0], vars);
                 var right = reduce(errors, children[2], vars);
+                console.log(right);
+                console.log(left);
                 console.log(right + " OP " + left);
                 if (left instanceof Object || right instanceof Object) return new Node(rebuild(node),type,[left,children[1],right]);
                 switch (children[1].data) {
@@ -693,11 +757,13 @@ function reduce(errors, node, vars) {
                 return;
             }
         case MULTDIV:
+        case MULTTERM:
             if (children.length == 1) {
                 return reduce(errors, children[0], vars);
             } else if (children.length == 3) {
                 var left = reduce(errors, children[0], vars);
                 var right = reduce(errors, children[2], vars);
+                console.log(right + " " + children[1].data + " " + left);
                 switch (children[1].data) {
                     case "*":
                         return right * left;

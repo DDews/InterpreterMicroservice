@@ -27,7 +27,7 @@ input[type="text"]
 }
 div.scroll {
   height: 50vh;
-  overflow-y: scroll;
+  overflow: scroll;
 }
 code.code {
   white-space: pre-wrap;

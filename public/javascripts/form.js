@@ -4,7 +4,7 @@ String.prototype.replaceAll = function(search, replacement) {
     var target = this;
     return target.replace(new RegExp(search, 'g'), replacement);
 };
-function enterKey(event) {
+function enterKey(e) {
     var keyCode = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
     $(".code").append(keyCode + "\n");
     switch (keyCode) {
@@ -38,6 +38,7 @@ function enterKey(event) {
            break;
        default:
    }
+   return false;
 }
 function call(line) {
     var lexing = $("#lex:checked").val();

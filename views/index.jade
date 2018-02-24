@@ -7,19 +7,20 @@ block content
   script(src="javascripts/form.js")
   div.scroll
     code.code
-  div.form-group
-    label(for='code') code
-    input#code.form-text(type='text', placeholder='fn echo (x) => x' onkeydown='enterKey()' autocomplete="off" name='code')
-  div.form-group
-    input#lex.form-radio(type='radio', name="action" value='lex')
-    label(for='lex') lex
-  div.form-group(hidden)
-    input#parse.form-radio(type='radio',name="action" value='parse')
-    label(for='parse') parse
-  div.form-group
-    input#lexparse.form-radio(type='radio',name="action" value='lexparse')
-    label(for='lexparse') lexparse
-  div.form-group
-    input#execute.form-radio(type='radio',name="action" value='execute' checked)
-    label(for='execute') execute
-  div.form-group
+  form.form
+      div.form-group
+        label(for='code') code
+        input#code.form-text(type='text', placeholder='fn echo (x) => x' onkeydown='enterKey()' autocomplete="off" name='code')
+      div.form-group
+        input#lex.form-radio(type='radio', name="action" value='lex')
+        label(for='lex') lex
+      div.form-group(hidden)
+        input#parse.form-radio(type='radio',name="action" value='parse')
+        label(for='parse') parse
+      div.form-group
+        input#lexparse.form-radio(type='radio',name="action" value='lexparse')
+        label(for='lexparse') lexparse
+      div.form-group
+        input#execute.form-radio(type='radio',name="action" value='execute' checked)
+        label(for='execute') execute
+      div.form-group

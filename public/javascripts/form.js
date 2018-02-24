@@ -6,6 +6,7 @@ String.prototype.replaceAll = function(search, replacement) {
 };
 function enterKey(event) {
     var keyCode = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
+    $(".code").append(keyCode + "\n");
     switch (keyCode) {
        case 38: //up
            _line--;

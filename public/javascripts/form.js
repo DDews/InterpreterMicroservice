@@ -5,7 +5,8 @@ String.prototype.replaceAll = function(search, replacement) {
     return target.replace(new RegExp(search, 'g'), replacement);
 };
 function enterKey(event) {
-   switch (event.keyCode) {
+    var keyCode = event.keyCode || event.which;
+   switch (keyCode) {
        case 38: //up
            _line--;
            if (_line < 0) {

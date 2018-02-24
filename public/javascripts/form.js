@@ -93,7 +93,6 @@ function call(line) {
         return false;
     });
 }
-$("form").submit(false);
 $(".form-text").submit(function (event) { event.preventDefault(); enterKey(); return false; });
 var types = ["TERM","NUMBER","ID","STRING","OPERATOR","ASSIGNMENT","FN_NAME","OPERAND"];
 function createDiv(node) {

@@ -95,7 +95,7 @@ function call(line) {
     });
 }
 function loadScript() {
-    $(".form").submit(function (event) { event.preventDefault(); enterKey(); return false; });
+    $(".form").submit(function (event) { event.preventDefault(); enterKey(event); return false; });
 }
 var types = ["TERM","NUMBER","ID","STRING","OPERATOR","ASSIGNMENT","FN_NAME","OPERAND"];
 function createDiv(node) {

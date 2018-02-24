@@ -90,6 +90,7 @@ function call(line) {
             }
            $(".scroll").scrollTop($(".code").height());
         }
+        return false;
     });
 }
 $("form").submit(false);

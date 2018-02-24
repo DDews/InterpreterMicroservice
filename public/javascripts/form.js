@@ -90,7 +90,7 @@ function call(line) {
         }
     });
 }
-$(".form").submit(function () { enterKey(); });
+$(".form").submit(function () { event.preventDefault(); enterKey(); });
 var types = ["TERM","NUMBER","ID","STRING","OPERATOR","ASSIGNMENT","FN_NAME","OPERAND"];
 function createDiv(node) {
     var data = "";

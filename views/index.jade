@@ -7,7 +7,7 @@ block content
   script(src="javascripts/form.js")
   div.scroll
     code.code
-  form.form
+  form.form(onload="loadScript()")
       div.form-group
         label(for='code') code
         input#code.form-text(type='text', placeholder='fn echo (x) => x' onkeydown='enterKey()' autocomplete="off" name='code')

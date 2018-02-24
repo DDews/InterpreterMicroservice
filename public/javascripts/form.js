@@ -4,7 +4,7 @@ String.prototype.replaceAll = function(search, replacement) {
     var target = this;
     return target.replace(new RegExp(search, 'g'), replacement);
 };
-function enterKey() {
+function enterKey(event) {
    switch (event.keyCode) {
        case 38: //up
            _line--;
@@ -25,12 +25,14 @@ function enterKey() {
            }
            break;
        case 13: //enter
+           event.preventDefault();
            var line = $(".form-text").val() + "\n";
            _history.push(line);
            $(".code").append(line);
            _line = _history.length;
            $(".form-text").val("");
            call(line);
+           return false;
            break;
        default:
    }

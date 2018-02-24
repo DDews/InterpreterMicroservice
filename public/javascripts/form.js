@@ -48,6 +48,7 @@ function call(line) {
     request += encodeURI(line).replaceAll("\\+","%2B");
     $.get(request, function (data) {
        var info = "Error: Service down.";
+       var vars = [];
         try {
            info = JSON.parse(data);
            console.log(typeof(info[0]));
@@ -62,6 +63,7 @@ function call(line) {
                    $(".scroll").scrollTop($(".code").height());
                 });
            } else if (!lexing) {
+               vars = info[0];
                info = info[1];
            }
            if (lexing) {
@@ -81,11 +83,14 @@ function call(line) {
        }
        if (!lexparsing) {
             $(".code").append("<b>" + info + "</b>\n");
+            if (executing) {
+                $(".code").append("vars: " + JSON.stringify(vars) + "\n");
+            }
            $(".scroll").scrollTop($(".code").height());
         }
     });
 }
-var types = ["TERM","NUMBER","ID","STRING","OPERATOR","ASSIGNMENT","FN_NAME"];
+var types = ["TERM","NUMBER","ID","STRING","OPERATOR","ASSIGNMENT","FN_NAME","OPERAND"];
 function createDiv(node) {
     var data = "";
     if (types.includes(node.type)) data = node.data;

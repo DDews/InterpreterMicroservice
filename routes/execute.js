@@ -23,7 +23,7 @@ router.get('/', function(req, res, next) {
             if (errors.length > 0) { errors.unshift("Input: " + input); res.send(JSON.stringify(errors)); }
             else {
                 console.log(JSON.stringify([vars, node]));
-                var ret = execute(errors,node,vars);
+                var ret = execute(errors,node,vars,vars);
                 json = JSON.stringify([vars,ret]);
                 if (errors.length > 0 || ret == null) {
                     errors.unshift("Input: " + input);

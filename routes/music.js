@@ -41,8 +41,8 @@ router.get('/', function(req, res, next) {
                 var search = name.toLowerCase();
                 if (song.indexOf(search) != -1) {
                     var obj = {};
-                    obj["song"] = name;
-                    obj["uuids"] = music[album][name];
+                    obj["song"] = key;
+                    obj["uuids"] = music[album][key];
                     res.send(JSON.stringify(obj));
                     return;
                 }

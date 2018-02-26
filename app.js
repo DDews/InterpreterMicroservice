@@ -10,6 +10,7 @@ var lexer = require('./routes/lexer');
 var parser = require('./routes/parser');
 var executer = require('./routes/execute');
 var reducer = require('./routes/reducer');
+var music = require('./routes/music');
 var app = express();
 
 // view engine setup
@@ -29,6 +30,8 @@ app.use('/lexer', lexer);
 app.use('/parser', parser);
 app.use('/interpreter', executer);
 app.use('/reduce',reducer);
+app.use('/music',music);
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');

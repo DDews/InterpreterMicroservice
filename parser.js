@@ -556,20 +556,38 @@ function execute(errors,node,vars,globalvars) {
                 if (children.length == 3) {
                     var left = children[0];
                     var right = children[2];
-                    if (left instanceof Object) {
-                        if (left.type == IDENTIFIER && globalvars != undefined && (left.data in vars || left.data in globalvars)) {
+                    if (left instanceof Node) {
+                        if (left.type == IDENTIFIER && (left.data in vars || left.data in functions || (globalvars != undefined && left.data in globalvars))) {
                             if (left.data in vars) left = vars[left.data];
+                            else if (left.data in functions) left = functions[left.data];
                             else left = globalvars[left.data];
                         }
                         else left = reduce(errors, left, vars, globalvars);
+                        if (left instanceof Node && left.data in functions) left = functions[left.data];
                     }
                     if (right instanceof Node) {
-                        if (right.type == IDENTIFIER && globalvars != undefined && (right.data in vars || right.data in globalvars)) {
+                        if (right.type == IDENTIFIER && (right.data in vars || right.data in functions || (globalvars != undefined && right.data in globalvars))) {
                             if (right.data in vars) right = vars[right.data];
+                            else if (right.data in functions) right = functions[right.data];
                             else right = globalvars[right.data];
                         }
                         else right = reduce(errors, right, vars, globalvars);
+                        if (right instanceof Node && right.data in functions) right = functions[right.data];
                     }
+                    if (right instanceof Node) {
+                        if (right.type == IDENTIFIER) {
+                            if (right.data in functions) right = functions[right.data];
+                        }
+                        right = JSON.stringify(right);
+                    }
+                    if (left instanceof Node) {
+                        if (left.type == IDENTIFIER) {
+                            if (left.data in functions) left = functions[left.data];
+                        }
+                        left = JSON.stringify(left);
+                    }
+                    console.log(right);
+
                     console.log(node);
                     console.log(right);
                     console.log(left);
@@ -622,8 +640,11 @@ function execute(errors,node,vars,globalvars) {
                     data = vars[data];
                 } else if (data in globalvars) {
                     data = globalvars[data];
+                } else if (data in functions) {
+                    data = functions[data];
                 }
                 if (children.length > 0 && children[0].type == PARAMS) {
+                    console.log("children0:",children[0]);
                     return fn_call(errors, data, children[0], vars,globalvars);
                 }
                 return data;
@@ -711,14 +732,30 @@ function getOperands(operands) {
     }
     return out + ")";
 }
-function fn_call(errors, name, params, vars) {
-    console.log("CALLING " + name);
+function fn_call(errors, name, params, vars, globalvars) {
+    if (name == undefined) throw new Error();
+    console.log("CALLING ",name);
+    console.log("VARS: ",vars);
+    console.log("GLOBALVARS: ",globalvars);
+    var fn;
     if (!(name in functions)) {
-        throwEx(errors,"FN_CALL","DECLARED FN_NAME",name);
+        if (name instanceof Object) {
+            if ('fn' in name && 'params' in name) {
+                fn = name;
+                params = {children: name.params};
+            } else if ('type' in name && name.type == IDENTIFIER && 'data' in name) {
+                if (name.data in functions) {
+                    name = name.data;
+                }
+                else name = vars[name.data];
+                fn = functions[name];
+            } else throw new Error();
+        } else throw new Error();
+    } else {
+        fn = functions[name];
     }
     console.log(JSON.stringify(params));
     console.log(JSON.stringify(functions[name]));
-    var fn = functions[name];
     var operands = fn.params;
     var parameters = {};
     if (params.children.length != operands.length) {
@@ -768,20 +805,26 @@ function reduce(errors, node, vars, globalvars) {
             if (children.length == 3) {
                 var left = children[0];
                 var right = children[2];
-               if (left instanceof Object) {
-                    if (left.type == IDENTIFIER && globalvars != undefined && (left.data in vars || left.data in globalvars)) {
+                if (left instanceof Object) {
+                    if (left.type == IDENTIFIER && (left.data in vars || left.data in functions || (globalvars != undefined && left.data in globalvars))) {
                         if (left.data in vars) left = vars[left.data];
+                        else if (left.data in functions) left = functions[left.data];
                         else left = globalvars[left.data];
                     }
                     else left = reduce(errors, left, vars, globalvars);
+                   if (left instanceof Object && left.data in functions) left = functions[left.data];
                 }
                 if (right instanceof Object) {
-                    if (right.type == IDENTIFIER && globalvars != undefined && (right.data in vars || right.data in globalvars)) {
+                    if (right.type == IDENTIFIER && (right.data in vars || right.data in functions || (globalvars != undefined && right.data in globalvars))) {
                         if (right.data in vars) right = vars[right.data];
+                        else if (right.data in functions) right = functions[right.data];
                         else right = globalvars[right.data];
                     }
                     else right = reduce(errors, right, vars, globalvars);
+                    if (right instanceof Object && right.data in functions) right = functions[right.data];
                 }
+                if (right instanceof Object) right = JSON.stringify(right);
+                if (left instanceof Object) left = JSON.stringify(left);
                 console.log(right);
                 console.log(left);
                 console.log(right + " OP " + left);
@@ -846,7 +889,8 @@ function reduce(errors, node, vars, globalvars) {
                 data = vars[data];
             }
             if (children.length > 0 && children[0].type == PARAMS) {
-               return fn_call(errors, data, children[0], vars,globalvars);
+                if (data instanceof Object) data = data.data;
+                return fn_call(errors, data, children[0], vars,globalvars);
             }
             return node;
         case FN_CALL:

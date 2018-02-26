@@ -26,7 +26,12 @@ function enterKey(e) {
            }
            break;
        case 13: //enter
-           event.preventDefault();
+           if(e.preventDefault){ e.preventDefault()}
+           else{e.stop()};
+
+           e.returnValue = false;
+           e.stopPropagation();
+
            var line = $(".form-text").val() + "\n";
            _history.push(line);
            $(".code").append(line);

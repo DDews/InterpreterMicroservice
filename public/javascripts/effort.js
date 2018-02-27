@@ -222,7 +222,7 @@ function _calculate(e) {
    for (var i = 0; i < people.length; i++) {
         var person = people[i];
         var div = $(".calc > .form-chart:nth-child(" + (i + 2) + ")");
-        div.find(".percent").html(person.name + "' s Effort: <b>" + person.effort + "</b>");
+        div.find(".percent").html(person.name + "' s Effort: <b>" + person.effort + "%</b>");
     }
     clone = clone.clone();
     clone.appendTo(".calc");

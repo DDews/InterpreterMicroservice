@@ -113,8 +113,9 @@ input.form-radio {
   top: 4px;
 }
 .effortChart {
-    width: 100%;
+    width: 50%;
     height: 300px;
+    transform: translateX(50%);
 }
 .form-chart {
     margin-top: 100px;
@@ -123,7 +124,7 @@ input.form-radio {
     height: 300px;
 }
 .form-percent {
-    width: 100%;
+    width: 50%;
     height: 80px;
 }
 input:checked {

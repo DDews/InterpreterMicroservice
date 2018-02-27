@@ -2,7 +2,28 @@ extends layout
 
 block content
   h1= title
-  p Welcome to #{title}
+  p This is to be used with MSUDenver's CS3250 class to calculate effort % for a team.
+  p Efforts are calculated as follows:
+  p
+  div.square
+
+      p Of the 100%:
+      ul
+        li 70% divided evenly among all members
+        ul
+          li  full share if the cards attempted or finished meets or exceeds the base number of cards. otherwise, returns a percentage of this amount, and the rest is added to a "distributed total" for later.
+      ul
+        li 15% divided among people who helped or was a reference in pair programming the most.
+        ul
+          li This value could be higher because the "distributed total" is added to this.
+      ul
+        li  15% divided among people with roles.
+          ul
+            li  full share if they did their job.
+            li  otherwise, they receive 0% of this bonus and their share is added to "distributed total"
+      p If there are no members with roles, that 15% is added to "distributed"
+      p If there are no members that helped with pair programming, that 15% is added to "distributed" and given evenly among all members
+  p App:
   script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js")
   script(src="javascripts/effort.js")
   script(src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js")

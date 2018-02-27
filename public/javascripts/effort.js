@@ -1,6 +1,9 @@
 function onLoadScript() {
     $(".form").submit((event) => { event.preventDefault(); enterKey(event); return false; });
 }
+$(document).ready(function(){
+    $('[data-toggle="popover"]').popover();
+});
 function keyEnter(e) {
     var elem = $(e.target);
 }
@@ -33,29 +36,52 @@ function groupChanged(e,bool) {
     $("#group2").val(num);
     $("#group").val(num);
     if (clone == null) {
-        clone = $("form > div.form-person:nth-child(2)").clone();
+        clone = $("form > div.form-person:nth-child(1)").clone();
+        clone.addClass("bg-color1");
     }
     var elem = $(e.target);
     var c = $("form").children;
 
     if (lastVal < num) {
         for (var i = lastVal; i < num; i++) {
-            clone.clone().appendTo("form");
+            var bgColor = "";
+            var bgRemove = "";
+            if (i % 2 == 1) {
+                bgColor = "bg-color2";
+                bgRemove = "bg-color1";
+            }
+            clone.clone().removeClass(bgRemove).addClass(bgColor).appendTo("form");
         }
     } else {
         $("form").find(".form-person:gt(" + (num - 1) + ")").remove();
     }
     lastVal = num;
 }
+function checkNames() {
+    var elems = $(".member");
+    for (var i = 0; i < elems.length; i++) {
+        var nameInput = $(elems[i]);
+        if (nameInput.val() == "") {
+            $("#submit").attr("disabled",true);
+            return;
+        }
+    }
+    $("#submit").attr("disabled",false);
+}
 function typing(e) {
     var elem = $(e.target);
     if (clone == null) {
-        clone = $("form > div.form-person:nth-child(2)").clone();
-        clone.find("#member").val("");
+        clone = $("form > div.form-person:nth-child(1)").clone();
+        clone.find(".member").val("");
     }
     console.log(findPerson(elem,".role").length);
-    if (elem.val().length > 0) findPerson(elem,".form-group:nth-child(2)").attr("hidden",false);
-    else findPerson(elem,".form-group:gt(1)").attr("hidden",true);
+    if (elem.val().length > 0) {
+        findPerson(elem,".form-group:nth-child(2)").attr("hidden",false);
+    }
+    else {
+        findPerson(elem,".form-group:gt(1)").attr("hidden",true);
+    }
+    checkNames();
 }
 function roleClick(e) {
     e.preventDefault();
@@ -100,7 +126,7 @@ function _calculate(e) {
     $(".form-person").each( function (index, element) {
         var elem = $(element);
         var person = {
-            name: elem.find("#member").val(),
+            name: elem.find(".member").val(),
             role: elem.find("#role").val(),
             rolestrength: +elem.find("#rolestrength").val(),
             cards: +elem.find("#cards").val(),
@@ -177,6 +203,7 @@ function _calculate(e) {
     elem.attr("hidden",false);
     $(".form-team").remove();
     var clone = elem.find(".form-chart:nth-child(1)").clone();
+
     elem.find(".form-chart:nth-child(1)").attr("hidden",true);
     var personData = [];
     for (var i = 0; i < people.length; i++) {
@@ -228,7 +255,7 @@ function _calculate(e) {
     clone.appendTo(".calc");
     clone.find("#chartContainer").CanvasJSChart({
         title: {
-            text: "Total Team Effort: " + total + "%",
+            text: "Total Team Effort: " + total.toFixed(2) + "%",
             fontSize: 24
         },
         axisY: {

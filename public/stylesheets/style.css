@@ -6,11 +6,20 @@ input[type=number]
 {
 }
 .form-person {
-  margin-top: 100pt;
-  margin-bottom: 100pt;
+  margin-top: 2%;
+  margin-bottom: 2%;
 }
 a {
   color: #00B7FF;
+}
+.bg-color1 {
+    background-color: #efefef!important;
+}
+.bg-color2 {
+    background-color: #f8f9fa!important;
+}
+.bg-offwhite {
+    background-color: #cccccc!important;
 }
 .popup {
     position: relative;
@@ -130,7 +139,12 @@ input.form-radio {
 input:checked {
   border: 6px solid black;
 }
-
+.hand {
+    cursor: pointer;
+}
+.bg-grey {
+    background-color: #999999;
+}
 button,
 legend {
   color: white;

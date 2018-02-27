@@ -29,62 +29,88 @@ block content
   script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js")
   script(src="javascripts/effort.js")
   script(src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js")
+  script(src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js")
   div.panel
     div.panel-heading
       h1 App:
-    div.panel-body
-      form.form
-        div.form-group
-          div.form-team
-            label(for='group') # of people in team
+    div.form-group
+        div.form-team.row
+          div.col-md-3
+            p
+              b # of Team Members
+          div.col-md-3.float-left
             input#group.form-number(type='number',value='1',placeholder='1', min='1', max='10', onkeyup='groupChanged(event)' onchange='groupClick(event)')
-          div.form-min
-            label(for='min') Minimum cards
+        div.form-min.row
+          div.col-md-3
+            p
+              b Minimum cards
+          div.col-md-3.float-left
             input#min.form-number(type='number',value='1', placeholder='1', min='1')
-        div.form-person
-          div.form-group
-            label(for='member') Team member
-            input#member.form-text(type='text',placeholder='name', onkeyup='typing(event)', onkeydown='keyEnter(event)')
-          div.form-group(hidden)
-            label.role(for='role') Role
-            select.role#role(onchange='if (this.selectedIndex) roleClick(event)')
-              option(value='Select One:')
-              option(value='Dev') Dev
-              option(value='Scrum Master') Scrum Master
-              option(value='Product Owner') Product Owner
-              option(value='Presenter') Presenter
-          div.form-group(hidden)
-            label.rolestrength(for='rolestrength') How well did they do their role?
-            select#rolestrength.rolestrength()
-              option(value='5' selected) 5/5
-              option(value='4') 4/5
-              option(value='3') 3/5
-              option(value='2') 2/5
-              option(value='1') 1/5
-          div.form-group(hidden)
-            input#cards.cards(type='number',value='0',placeholder='0',onclick='card(event)', min='0', max='90', onkeyup='card(event)' )
-            label.cards(for='cards' ) Cards taken
-          div.form-group(hidden)
-            div.popup
+    div.panel-body.bg-offwhite.rounded
+      form.form.card
+        div.form-person.bg-color1.rounded
+          div.form-group.row
+            div.col-md-3
+              p
+                b Team member
+            div.col-md-7
+              input.member.form-control(type='text',placeholder='name', onkeyup='typing(event)', onkeydown='keyEnter(event)')
+          div.form-group.row(hidden)
+            div.col-md-3
+              p
+                b Role
+            div.col-md-7
+                select.role#role(onchange='if (this.selectedIndex) roleClick(event)')
+                  option(value='Select One:')
+                  option(value='Dev') Dev
+                  option(value='Scrum Master') Scrum Master
+                  option(value='Product Owner') Product Owner
+                  option(value='Presenter') Presenter
+          div.form-group.row(hidden)
+            div.col-md-3
+              p
+                b How well did they do their role?
+            div.col-md-7
+              select#rolestrength.rolestrength()
+                option(value='5' selected) 5/5
+                option(value='4') 4/5
+                option(value='3') 3/5
+                option(value='2') 2/5
+                option(value='1') 1/5
+          div.form-group.row(hidden)
+            div.col-md-3
+              p
+                b Cards taken
+            div.col-md-7
+              input#cards.cards(type='number',value='0',placeholder='0',onclick='card(event)', min='0', max='90', onkeyup='card(event)' )
+          div.form-group.row(hidden)
+              div.col-md-3
+                p.ml-3 Cards #[a.text-info.hand(data-toggle='popover', data-content='Did they ask for help or notify if they got stuck?') fully attempted]
+              div.col-md-7
                 input#completed.completed(type='number', value='0', placeholder='0', onclick='_completed(event)', onkeyup='_completed(event)' min='0', max='90', )
-                label.completed(for='completed' ) Cards #[a(onclick='popUp(event)') fully attempted]
-                  span#myPopup.popuptext(hidden) Did they ask for help or notify if they got stuck?
-          div.form-group(hidden)
-            input#helped.form-radio.helped(type='checkbox', name='helped' , min="1", onclick="_helped(event)", onkeydown="_helpEnter(event)")
-            label.helped(for='helped' ) Helped others
-          div.form-group(hidden)
-            div.form-member
-              label.pp(for='pp' ) Hours helped [of pair programming/saved by answering questions]
-              input#pp.pp(type='number', value='0', placeholder='0')
-      div.add-person
-        div.form-team
-            label(for='group2') # of people in team
-            input#group2.form-number(type='number',value='1',placeholder='1', min='1', onkeyup='groupChanged(event)' onchange='groupClick(event)')
-      div.submit
-        input#submit.submit(type="button", value="calculate", onclick="_calculate(event)")
-      div.calc(hidden)
-        div.form-chart
-          div.effortChart#chartContainer
-          div.percent
+          div.form-group.row(hidden)
+            div.col-md-3
+              p
+                b.helped(for='helped' ) Helped others
+            div.col-md-7.float-left
+              input.checkbox.helped(type='checkbox', name='helped' , min="1", onclick="_helped(event)", onkeydown="_helpEnter(event)")
+          div.form-group.row(hidden)
+              div.col-md-3
+                p.pp.ml-3(for='pp' ) Hours #[a.text-info.hand(data-toggle='popover', data-content='How many hours did they save the team by answering questions?\nHow many hours did they pair program?') helped]
+              div.col-my-7
+                input#pp.pp(type='number', value='0', placeholder='0')
+    div.form-team.well.row
+      div.col-md-3
+        p
+          b # of Team Members
+      div.col-md-3.float-left
+        input#group2.form-number(type='number',value='1',placeholder='1', min='1', max='10', onkeyup='groupChanged(event)' onchange='groupClick(event)')
+    div.submit
+      input#submit.submit(type="button", value="calculate", onclick="_calculate(event)", disabled)
+    div.calc(hidden)
+      div.form-chart
+        div.effortChart#chartContainer
+        div.percent
 
 

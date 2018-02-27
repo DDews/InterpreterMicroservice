@@ -28,13 +28,14 @@ function groupChanged(e,bool) {
     if (!keyCode && !bool) return;
     e.preventDefault();
     var elem = $(e.target);
-    $("#group2").val(elem.val());
-    $("#group").val(elem.val());
+    var num = +elem.val();
+    if (num > 10) num = 10;
+    $("#group2").val(num);
+    $("#group").val(num);
     if (clone == null) {
         clone = $("form > div.form-person:nth-child(2)").clone();
     }
     var elem = $(e.target);
-    var num = +elem.val();
     var c = $("form").children;
 
     if (lastVal < num) {

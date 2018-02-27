@@ -1,84 +1,90 @@
 extends layout
 
 block content
-  h1= title
-  p This is to be used with MSUDenver's CS3250 class to calculate effort % for a team.
-  p Efforts are calculated as follows:
+  div.panel
+    div.panel-heading
+      h1= title
+    div.panel-body This is to be used with MSUDenver's CS3250 class to calculate effort % for a team.
   p
-  div.square
-
-      p Of the 100%:
-      ul
-        li 70% divided evenly among all members
-        ul
-          li  full share if the number of cards (attempted or finished) meets or exceeds the base number of cards. otherwise, returns a percentage of this amount, and the rest is added to a "distributed total" for later.
-      ul
-        li 15% divided among people who helped or was a reference in pair programming the most.
-        ul
-          li This value could be higher because the "distributed total" is added to this.
-      ul
-        li  15% divided among people with roles.
+  div.square.card
+    div.card-block
+      h4.card-title Calculating the values
+      p.card-text
+          p Of the 100%:
           ul
-            li  full share if they did their job.
-            li  otherwise, they receive 0% of this bonus and their share is added to "distributed total"
-      p If there are no members with roles, that 15% is added to "distributed"
-      p If there are no members that helped with pair programming, that 15% is added to "distributed" and given evenly among all members
-  h1 App:
+            li 70% divided evenly among all members
+            ul
+              li  full share if the number of cards (attempted or finished) meets or exceeds the base number of cards. otherwise, returns a percentage of this amount, and the rest is added to a "distributed total" for later.
+          ul
+            li 15% divided among people who helped or was a reference in pair programming the most.
+            ul
+              li This value could be higher because the "distributed total" is added to this.
+          ul
+            li  15% divided among people with roles.
+              ul
+                li  full share if they did their job.
+                li  otherwise, they receive 0% of this bonus and their share is added to "distributed total"
+          p If there are no members with roles, that 15% is added to "distributed"
+          p If there are no members that helped with pair programming, that 15% is added to "distributed" and given evenly among all members
   script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js")
   script(src="javascripts/effort.js")
   script(src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js")
-  form.form
-    div.form-group
-      div.form-team
-        label(for='group') # of people in team
-        input#group.form-number(type='number',value='1',placeholder='1', min='1', max='10', onkeyup='groupChanged(event)' onchange='groupClick(event)')
-      div.form-min
-        label(for='min') Minimum cards
-        input#min.form-number(type='number',value='1', placeholder='1', min='1')
-    div.form-person
-      div.form-group
-        label(for='member') Team member
-        input#member.form-text(type='text',placeholder='name', onkeyup='typing(event)', onkeydown='keyEnter(event)')
-      div.form-group(hidden)
-        label.role(for='role') Role
-        select.role#role(onchange='if (this.selectedIndex) roleClick(event)')
-          option(value='Select One:')
-          option(value='Dev') Dev
-          option(value='Scrum Master') Scrum Master
-          option(value='Product Owner') Product Owner
-          option(value='Presenter') Presenter
-      div.form-group(hidden)
-        label.rolestrength(for='rolestrength') How well did they do their role?
-        select#rolestrength.rolestrength()
-          option(value='5' selected) 5/5
-          option(value='4') 4/5
-          option(value='3') 3/5
-          option(value='2') 2/5
-          option(value='1') 1/5
-      div.form-group(hidden)
-        input#cards.cards(type='number',value='0',placeholder='0',onclick='card(event)', min='0', max='90', onkeyup='card(event)' )
-        label.cards(for='cards' ) Cards taken
-      div.form-group(hidden)
-        div.popup
-            input#completed.completed(type='number', value='0', placeholder='0', onclick='_completed(event)', onkeyup='_completed(event)' min='0', max='90', )
-            label.completed(for='completed' ) Cards #[a(onclick='popUp(event)') fully attempted]
-              span#myPopup.popuptext(hidden) Did they ask for help or notify if they got stuck?
-      div.form-group(hidden)
-        input#helped.form-radio.helped(type='checkbox', name='helped' , min="1", onclick="_helped(event)", onkeydown="_helpEnter(event)")
-        label.helped(for='helped' ) Helped others
-      div.form-group(hidden)
-        div.form-member
-          label.pp(for='pp' ) Hours helped [of pair programming/saved by answering questions]
-          input#pp.pp(type='number', value='0', placeholder='0')
-  div.add-person
-    div.form-team
-        label(for='group2') # of people in team
-        input#group2.form-number(type='number',value='1',placeholder='1', min='1', onkeyup='groupChanged(event)' onchange='groupClick(event)')
-  div.submit
-    input#submit.submit(type="button", value="calculate", onclick="_calculate(event)")
-  div.calc(hidden)
-    div.form-chart
-      div.effortChart#chartContainer
-      div.percent
+  div.panel
+    div.panel-heading
+      h1 App:
+    div.panel-body
+      form.form
+        div.form-group
+          div.form-team
+            label(for='group') # of people in team
+            input#group.form-number(type='number',value='1',placeholder='1', min='1', max='10', onkeyup='groupChanged(event)' onchange='groupClick(event)')
+          div.form-min
+            label(for='min') Minimum cards
+            input#min.form-number(type='number',value='1', placeholder='1', min='1')
+        div.form-person
+          div.form-group
+            label(for='member') Team member
+            input#member.form-text(type='text',placeholder='name', onkeyup='typing(event)', onkeydown='keyEnter(event)')
+          div.form-group(hidden)
+            label.role(for='role') Role
+            select.role#role(onchange='if (this.selectedIndex) roleClick(event)')
+              option(value='Select One:')
+              option(value='Dev') Dev
+              option(value='Scrum Master') Scrum Master
+              option(value='Product Owner') Product Owner
+              option(value='Presenter') Presenter
+          div.form-group(hidden)
+            label.rolestrength(for='rolestrength') How well did they do their role?
+            select#rolestrength.rolestrength()
+              option(value='5' selected) 5/5
+              option(value='4') 4/5
+              option(value='3') 3/5
+              option(value='2') 2/5
+              option(value='1') 1/5
+          div.form-group(hidden)
+            input#cards.cards(type='number',value='0',placeholder='0',onclick='card(event)', min='0', max='90', onkeyup='card(event)' )
+            label.cards(for='cards' ) Cards taken
+          div.form-group(hidden)
+            div.popup
+                input#completed.completed(type='number', value='0', placeholder='0', onclick='_completed(event)', onkeyup='_completed(event)' min='0', max='90', )
+                label.completed(for='completed' ) Cards #[a(onclick='popUp(event)') fully attempted]
+                  span#myPopup.popuptext(hidden) Did they ask for help or notify if they got stuck?
+          div.form-group(hidden)
+            input#helped.form-radio.helped(type='checkbox', name='helped' , min="1", onclick="_helped(event)", onkeydown="_helpEnter(event)")
+            label.helped(for='helped' ) Helped others
+          div.form-group(hidden)
+            div.form-member
+              label.pp(for='pp' ) Hours helped [of pair programming/saved by answering questions]
+              input#pp.pp(type='number', value='0', placeholder='0')
+      div.add-person
+        div.form-team
+            label(for='group2') # of people in team
+            input#group2.form-number(type='number',value='1',placeholder='1', min='1', onkeyup='groupChanged(event)' onchange='groupClick(event)')
+      div.submit
+        input#submit.submit(type="button", value="calculate", onclick="_calculate(event)")
+      div.calc(hidden)
+        div.form-chart
+          div.effortChart#chartContainer
+          div.percent
 
 

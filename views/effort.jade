@@ -60,7 +60,7 @@ block content
         label.cards(for='cards' ) Cards taken
       div.form-group(hidden)
         div.popup
-            input#completed.completed(type='number', value='0', placeholder='0', onclick='_completed(event)', min='0', max='90', )
+            input#completed.completed(type='number', value='0', placeholder='0', onclick='_completed(event)', onkeyup='_completed(event)' min='0', max='90', )
             label.completed(for='completed' ) Cards #[a(onclick='popUp(event)') fully attempted]
               span#myPopup.popuptext(hidden) Did they ask for help or notify if they got stuck?
       div.form-group(hidden)

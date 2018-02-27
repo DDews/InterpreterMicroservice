@@ -69,8 +69,10 @@ function roleClick(e) {
     else findPerson(elem,".form-group:gt(2)").hide();
 }
 function _completed(e) {
-    e.preventDefault();
     var elem = $(e.target);
+    console.log("atrr: " + elem.attr("max"));
+    if (+elem.val() > +elem.attr("max")) elem.val(elem.attr("max"));
+    else if (+elem.val() == 0) elem.val("0");
 }
 function _helped(e) {
     var elem = $(e.target);

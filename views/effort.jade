@@ -31,7 +31,7 @@ block content
     div.form-group
       div.form-team
         label(for='group') # of people in team
-        input#group.form-number(type='number',value='1',placeholder='1', min='1', onkeyup='groupChanged(event)' onchange='groupClick(event)')
+        input#group.form-number(type='number',value='1',placeholder='1', min='1', max='10', onkeyup='groupChanged(event)' onchange='groupClick(event)')
       div.form-min
         label(for='min') Minimum cards
         input#min.form-number(type='number',value='1', placeholder='1', min='1')

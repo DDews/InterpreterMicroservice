@@ -183,17 +183,17 @@ function _calculate(e) {
         clone = clone.clone();
         clone.appendTo(".calc");
         var person = people[i];
-        personData.push({ label: person.name, y: person.effort, legendText: person.name + "'s contribution"});
+        personData.push({ label: person.name, y: person.effort.toFixed(2), legendText: person.name + "'s contribution"});
         console.log("found: ",clone.find("#chartContainer"));
         console.log(person);
         var data = [];
-        if (person.helpPerc > 0) data.push({ label: "Helping others/Pair programming", y: person.helpPerc / person.effort * 100, legendText: "Helping Others" });
+        if (person.helpPerc > 0) data.push({ label: "Helping others/Pair programming", y: (person.helpPerc / person.effort * 100).toFixed(2), legendText: "Helping Others" });
         else data.push({ label:" Helping others/Pair programming", y: 0, legendText: "Helping Others" });
-        if (person.rolePerc > 0) data.push({ label: "Role", y: person.rolePerc / person.effort * 100, legendText: "Role duties" });
+        if (person.rolePerc > 0) data.push({ label: "Role", y: (person.rolePerc / person.effort * 100).toFixed(2), legendText: "Role duties" });
         else data.push({ label: "Role", y: 0, legendText: "Role duties" });
-        if (person.cardPerc > 0) data.push({ label: "Cards attempted", y: person.cardPerc / person.effort * 100, legendText: "Cards Attempted"});
+        if (person.cardPerc > 0) data.push({ label: "Cards attempted", y: (person.cardPerc / person.effort * 100).toFixed(2), legendText: "Cards Attempted"});
         else data.push({ label: "Cards attempted", y: 0, legendText: "Cards Attempted"});
-        if (person.distPerc > 0) data.push({ label: "Left-over points added from distribution", y: person.distPerc / person.effort * 100, legendText: "Distributed"});
+        if (person.distPerc > 0) data.push({ label: "Left-over points added from distribution", y: (person.distPerc / person.effort * 100).toFixed(2), legendText: "Distributed"});
         else data.push({ label: "Left-over points added from distribution", y: 0, legendText: "Distributed"});
         clone.find("#chartContainer").CanvasJSChart({
             title: {
@@ -222,7 +222,7 @@ function _calculate(e) {
    for (var i = 0; i < people.length; i++) {
         var person = people[i];
         var div = $(".calc > .form-chart:nth-child(" + (i + 2) + ")");
-        div.find(".percent").html(person.name + "' s Effort: <b>" + person.effort + "%</b>");
+        div.find(".percent").html(person.name + "' s Effort: <b>" + person.effort.toFixed(2) + "%</b>");
     }
     clone = clone.clone();
     clone.appendTo(".calc");

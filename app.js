@@ -5,6 +5,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+var effort = require('./routes/effort')
 var index = require('./routes/index');
 var lexer = require('./routes/lexer');
 var parser = require('./routes/parser');
@@ -31,6 +32,7 @@ app.use('/parser', parser);
 app.use('/interpreter', executer);
 app.use('/reduce',reducer);
 app.use('/music',music);
+app.use('/effort',effort);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

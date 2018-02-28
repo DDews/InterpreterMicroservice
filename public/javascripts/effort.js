@@ -105,7 +105,7 @@ function _helped(e) {
     if (elem.prop("checked")) {
         findPerson(elem,".form-group:nth-child(7)").attr("hidden",false);
     } else {
-        findPerson(elem,".form-group:gt(6)").attr("hidden",true);
+        findPerson(elem,".form-group:gt(5)").attr("hidden",true);
     }
 }
 function _helpEnter(e) {

@@ -94,7 +94,7 @@ block content
               p
                 b.helped(for='helped' ) Helped others
             div.col-md-7.float-left
-              input.checkbox.helped(type='checkbox', name='helped' , min="1", onclick="_helped(event)", onkeydown="_helpEnter(event)")
+              input#helped.checkbox.helped(type='checkbox', name='helped' , min="1", onclick="_helped(event)", onkeydown="_helpEnter(event)")
           div.form-group.row(hidden)
               div.col-md-3
                 p.pp.ml-3(for='pp' ) Hours #[a.text-info.hand(data-toggle='popover', data-content='How many hours did they save the team by answering questions?\nHow many hours did they pair program?') helped]

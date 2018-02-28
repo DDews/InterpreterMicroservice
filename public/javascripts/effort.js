@@ -56,7 +56,7 @@ function groupChanged(e,bool) {
             clone.clone().removeClass(bgRemove).addClass(bgColor).appendTo("form");
         }
     } else {
-        $("form").find(".form-person:gt(" + (num) + ")").remove();
+        $("form").find(".form-person:gt(" + (num - 1) + ")").remove();
     }
     lastVal = num;
 }

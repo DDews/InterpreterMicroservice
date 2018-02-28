@@ -24,6 +24,7 @@ function card(e) {
 var lastVal = 1;
 var clone = null;
 function groupClick(e) {
+    e.preventDefault();
     groupChanged(e,true);
 }
 function groupChanged(e,bool) {
@@ -33,16 +34,17 @@ function groupChanged(e,bool) {
     var elem = $(e.target);
     var num = +elem.val();
     if (num > 10) num = 10;
+    else if (num < 0) num = 0;
     $("#group2").val(num);
     $("#group").val(num);
     if (clone == null) {
         clone = $("form > div.form-person:nth-child(1)").clone();
         clone.addClass("bg-color1");
     }
-    var elem = $(e.target);
     var c = $("form").children;
 
-    if (lastVal < num) {
+    console.log("val: ",lastVal,num);
+    if (lastVal <= num) {
         for (var i = lastVal; i < num; i++) {
             var bgColor = "";
             var bgRemove = "";
@@ -53,7 +55,7 @@ function groupChanged(e,bool) {
             clone.clone().removeClass(bgRemove).addClass(bgColor).appendTo("form");
         }
     } else {
-        $("form").find(".form-person:gt(" + (num - 1) + ")").remove();
+        $("form").find(".form-person:gt(" + (num) + ")").remove();
     }
     lastVal = num;
 }

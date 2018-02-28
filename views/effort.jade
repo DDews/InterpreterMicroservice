@@ -103,7 +103,7 @@ block content
               div.col-md-3
                 p.pp.ml-3(for='pp' ) Hours #[a.text-info.hand(data-toggle='popover', data-content='How many hours did they save the team by answering questions?\nHow many hours did they pair program?') helped]
               div.col-my-7
-                input#pp.pp(type='number', value='0', placeholder='0')
+                input#pp.pp(type='number', value='0', min='0', placeholder='0', onkeydown="_hoursHelped(event)", onclick="_hoursHelped(event")
     div.form-team.well.row
       div.col-md-3
         p

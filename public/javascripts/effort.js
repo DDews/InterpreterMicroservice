@@ -10,7 +10,7 @@ function keyEnter(e) {
 var added = [];
 function card(e) {
     var elem = $(e.target);
-    elem.val(+elem.val())
+    if (+elem.val() >= 0) elem.val(+elem.val())
     if (elem.val() > 0) {
         findPerson(elem,".form-group:nth-child(5)").attr("hidden",false);
     }
@@ -41,6 +41,7 @@ function groupChanged(e,bool) {
         clone = $("form > div.form-person:nth-child(1)").clone();
         clone.addClass("bg-color1");
     }
+    if (num <= 0) return;
     var c = $("form").children;
 
     console.log("val: ",lastVal,num);
@@ -100,7 +101,7 @@ function _completed(e) {
     var elem = $(e.target);
     console.log("atrr: " + elem.attr("max"));
     if (+elem.val() > +elem.attr("max")) elem.val(elem.attr("max"));
-    else if (+elem.val() == 0) elem.val("0");
+    else if (+elem.val() < 0) elem.val("0");
 }
 function _helped(e) {
     var elem = $(e.target);
@@ -119,6 +120,10 @@ function _helpEnter(e) {
         else elem.prop('checked', true);
     }
     _helped(e);
+}
+function _hoursHelped(e) {
+    var elem = $(e.target);
+    if (+elem.val() < 0) elem.val("0");
 }
 function _calculate(e) {
     e.preventDefault();
@@ -139,7 +144,13 @@ function _calculate(e) {
             rolePerc: 0,
             cardPerc: 0,
             disPerc: 0,
-            effort: 0
+            effort: 0,
+            plusNegative: {
+                helpPerc: 0,
+                rolePerc: 0,
+                cardPerc: 0,
+                total: 0
+            }
         }
         people.push(person);
     });
@@ -157,7 +168,10 @@ function _calculate(e) {
         var cardPerc = share;
         if (person.completed < minCards) {
             cardPerc = (person.completed / minCards) * share;
-            distributed += (1 - (person.completed / minCards)) * share;
+            var dis = (1 - (person.completed / minCards)) * share;
+            distributed += dis;
+            person.plusNegative.cardPerc = dis;
+            person.plusNegative.total += dis;
         }
         person.cardPerc = cardPerc;
         person.effort = cardPerc;
@@ -180,7 +194,10 @@ function _calculate(e) {
             var rolePerc = rolePerk * (person.rolestrength / 5);
             person.rolePerc = rolePerc;
             person.effort += rolePerc;
-            distributed += (1 - (person.rolestrength / 5)) * rolePerk;
+            var dis = (1 - (person.rolestrength / 5)) * rolePerk;
+            person.plusNegative.rolePerc = dis;
+            person.plusNegative.total += dis;
+            distributed += dis;
         }
     }
     var total = 0;
@@ -212,18 +229,23 @@ function _calculate(e) {
         clone = clone.clone();
         clone.appendTo(".calc");
         var person = people[i];
-        personData.push({ label: person.name, y: person.effort.toFixed(2), legendText: person.name + "'s contribution"});
+        if(person.effort > 0) personData.push({ label: person.name, y: person.effort.toFixed(2), legendText: person.name + "'s contribution"});
         console.log("found: ",clone.find("#chartContainer"));
         console.log(person);
         var data = [];
-        if (person.helpPerc > 0) data.push({ label: "Helping others/Pair programming", y: (person.helpPerc / person.effort * 100).toFixed(2), legendText: "Helping Others" });
-        else data.push({ label:" Helping others/Pair programming", y: 0, legendText: "Helping Others" });
-        if (person.rolePerc > 0) data.push({ label: "Role", y: (person.rolePerc / person.effort * 100).toFixed(2), legendText: "Role duties" });
-        else data.push({ label: "Role", y: 0, legendText: "Role duties" });
-        if (person.cardPerc > 0) data.push({ label: "Cards attempted", y: (person.cardPerc / person.effort * 100).toFixed(2), legendText: "Cards Attempted"});
-        else data.push({ label: "Cards attempted", y: 0, legendText: "Cards Attempted"});
-        if (person.distPerc > 0) data.push({ label: "Left-over points added from distribution", y: (person.distPerc / person.effort * 100).toFixed(2), legendText: "Distributed"});
-        else data.push({ label: "Left-over points added from distribution", y: 0, legendText: "Distributed"});
+        if (person.helpPerc > 0) data.push({ label: "Helping others/Pair programming", y: (person.helpPerc / person.effort * 100).toFixed(2), actual: person.helpPerc.toFixed(2), legendText: "Helping Others" });
+        else data.push({ label:" Helping others/Pair programming", y: 0, actual: 0, legendText: "Helping Others" });
+        if (person.plusNegative.total > 0) {
+            data.push({ label: "Subtractions:<br/>Cards: " + person.plusNegative.cardPerc.toFixed(2) +"%<br/>Role: " + person.plusNegative.rolePerc.toFixed(2) + "%", y: person.plusNegative.total, actual: person.plusNegative.total.toFixed(2), legendText: "Subtracted"});
+        } else {
+            data.push({ label: "Subtractions from lack of effort", y: 0, legendText: "Subtracted"});
+        }
+        if (person.rolePerc > 0) data.push({ label: "Role", y: (person.rolePerc / person.effort * 100).toFixed(2), actual: person.rolePerc.toFixed(2), legendText: "Role duties" });
+        else data.push({ label: "Role", y: 0, actual: 0, legendText: "Role duties" });
+        if (person.cardPerc > 0) data.push({ label: "Cards attempted", y: (person.cardPerc / person.effort * 100).toFixed(2), actual: person.cardPerc.toFixed(2), legendText: "Cards Attempted"});
+        else data.push({ label: "Cards attempted", y: 0, actual: 0, legendText: "Cards Attempted"});
+        if (person.distPerc > 0) data.push({ label: "Left-over points added from distribution", y: (person.distPerc / person.effort * 100).toFixed(2), actual: person.distPerc.toFixed(2), legendText: "Distributed"});
+        else data.push({ label: "Left-over points added from distribution", y: 0, actual: 0, legendText: "Distributed"});
         clone.find("#chartContainer").CanvasJSChart({
             title: {
                 text: "Individual Effort: " + person.name,
@@ -240,8 +262,8 @@ function _calculate(e) {
                 {
                     type: "pie",
                     showInLegend: true,
-                    toolTipContent: "{label} <br/> {y} %",
-                    indexLabel: "{y} %",
+                    toolTipContent: "{label} <br/> {y} % of " + person.effort.toFixed(2) + " %",
+                    indexLabel: "{actual} %",
 
                     dataPoints: data
                 }

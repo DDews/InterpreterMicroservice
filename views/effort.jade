@@ -65,8 +65,7 @@ block content
               p
                 b Role
             div.col-md-7
-                select.role#role(onchange='if (this.selectedIndex) roleClick(event)')
-                  option(value='Select One:')
+                select.role#role(onchange='roleClick(event)')
                   option(value='Dev') Dev
                   option(value='Scrum Master') Scrum Master
                   option(value='Product Owner') Product Owner

@@ -80,6 +80,8 @@ function typing(e) {
     console.log(findPerson(elem,".role").length);
     if (elem.val().length > 0) {
         findPerson(elem,".form-group:nth-child(2)").attr("hidden",false);
+        findPerson(elem,".form-group:nth-child(4)").attr("hidden",false);
+        findPerson(elem,".form-group:nth-child(6)").attr("hidden",false);
     }
     else {
         findPerson(elem,".form-group:gt(1)").attr("hidden",true);
@@ -95,7 +97,7 @@ function roleClick(e) {
         if (elem.val() != "Dev") findPerson(elem,".form-group:nth-child(3)").attr("hidden",false);
         else findPerson(elem,".form-group:nth-child(3)").attr("hidden",true);
     }
-    else findPerson(elem,".form-group:gt(2)").attr("hidden",true);
+    else findPerson(elem,".form-group:nth-child(3)").attr("hidden",true);
 }
 function _completed(e) {
     var elem = $(e.target);
